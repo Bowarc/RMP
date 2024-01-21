@@ -1,0 +1,8 @@
+[workspace]
+resolver = "2" # What are the differences with v1 ?
+members = [
+    "server",
+    "tui",
+    "gui",
+    "shared",
+]
