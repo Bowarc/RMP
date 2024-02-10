@@ -4,5 +4,5 @@ members = [
     "server",
     "tui",
     "gui",
-    "shared",
+    "shared", "cli",
 ]
