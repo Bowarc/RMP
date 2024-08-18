@@ -1,0 +1,5 @@
+[13:44:03.205 TRACE server::main.rs:17] 
+╭──────────────────────────────╮
+│         Server start         │
+╰──────────────────────────────╯
+[13:44:03.206 DEBUG server::main.rs:33] Starting loop with 10TPS

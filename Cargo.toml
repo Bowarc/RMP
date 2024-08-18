@@ -4,5 +4,17 @@ members = [
     "server",
     "tui",
     "gui",
-    "shared", "cli",
+    "cli",
+    "shared",
 ]
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[workspace.dependencies]
+thiserror = "1.0.63"
+uuid = { version = "1.10.0", features = ["v4", "zerocopy", "serde"] }
+
+log = "0.4.20"
+logger = { git = "https://github.com/Bowarc/Crates.git", package = "logger" }
+time = { git = "https://github.com/Bowarc/Crates.git", package = "time" }

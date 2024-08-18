@@ -6,3 +6,13 @@ edition = "2021"
 [[bin]]
 name = "server"
 path = "src/main.rs"
+
+[dependencies]
+logger.workspace = true
+log.workspace = true
+uuid.workspace = true
+thiserror.workspace = true
+time.workspace = true
+rodio = "0.19.0"
+ctrlc = "3.4.5"
+spin_sleep_util = "0.1.1"
