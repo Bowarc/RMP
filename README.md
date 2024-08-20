@@ -1,16 +1,9 @@
 ### Rust Music Player
 
 ## State
-Not started yet, just made the structure to remember later
+Just started
 
-### Gui
-- [ ] ?
+## Roadmap
 
-### Tui
-- [ ] ?
+[Roadmap](./roadmap.md)
 
-### Server
-- [ ] ?
-
-### Shared
-- [ ] ?
