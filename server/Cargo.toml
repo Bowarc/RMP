@@ -8,11 +8,12 @@ name = "server"
 path = "src/main.rs"
 
 [dependencies]
+shared = { path = "../shared" }
 logger.workspace = true
 log.workspace = true
 uuid.workspace = true
-thiserror.workspace = true
 time.workspace = true
-rodio = "0.19.0"
+networking.workspace = true
+rodio.workspace = true
 ctrlc = "3.4.5"
 spin_sleep_util = "0.1.1"

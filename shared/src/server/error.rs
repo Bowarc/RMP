@@ -1,11 +1,17 @@
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Error{
     #[error("This is a test error and shouldn't be used in any public context")]
-    Test
+    Test,
+
+    #[error(transparent)]
+    PlayerError(#[from] PlayerError),
+
+    #[error("{0}")]
+    SocketError(String)
 }
 
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub enum PlayerError{
     #[error("This is a test error and shouldn't be used in any public context")]
     Test,
@@ -24,5 +30,4 @@ pub enum PlayerError{
         target: String,
         error: String
     },
-
 }

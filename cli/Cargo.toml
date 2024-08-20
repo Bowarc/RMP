@@ -6,3 +6,10 @@ edition = "2021"
 [[bin]]
 name = "cli_client"
 path = "src/main.rs"
+
+[dependencies]
+shared = { path = "../shared" }
+logger.workspace = true
+log.workspace = true
+
+uuid.workspace = true

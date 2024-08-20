@@ -1,20 +1,22 @@
 mod rodio_player;
+pub use rodio_player::RodioPlayer as PlayerImpl;
+
+pub type Result<T> = std::result::Result<T, crate::error::PlayerError>;
 
 pub trait Player {
-    fn play(&mut self) -> Result<(), crate::error::PlayerError>;
-    fn pause(&mut self) -> Result<(), crate::error::PlayerError>;
+    fn play(&mut self) -> Result<()>;
+    fn pause(&mut self) -> Result<()>;
 
-    fn add_queue(&mut self, uuid: uuid::Uuid) -> Result<(), crate::error::PlayerError>;
-    fn remove_queue(&mut self, uuid: uuid::Uuid) -> Result<(), crate::error::PlayerError>;
+    fn add_queue(&mut self, uuid: uuid::Uuid) -> Result<()>;
+    fn remove_queue(&mut self, uuid: uuid::Uuid) -> Result<()>;
+    fn clear_queue(&mut self) -> Result<()>;
+    fn queue(&self) -> Result<Vec<shared::song::Song>>; // TODO: swap to a user friendly song identification system
 
-    fn update(&mut self) -> Result<(), crate::error::PlayerError>;
+    fn set_volume(&mut self, val: f32) -> Result<()>;
+    fn volume(&self) -> Result<f32>;
+
+    fn update(&mut self) -> Result<()>;
 }
 
 pub type playlist = Vec<uuid::Uuid>;
 
-// pub struct Song {
-//     uuid: uuid::Uuid,
-//     name: String,
-//     duration: std::time::Duration,
-//     // author: Option<String>
-// }
