@@ -1,14 +1,25 @@
 - [ ] Server
     - [ ] Music player
-        - [x] Can load songs
+        - [x] Load a song
         - [x] Play queued song
-        - [ ] next song is played when current is done
-    - [ ] Playlist manager
+        - [ ] Next song is played when current is done
+        - [ ] Error handling
+    - [ ] Playlist manager (?)
     - [ ] Downloader
+        - [ ] Queue a download request
+        - [ ] Execute a download request
+        - [ ] Cleanly stop a download request
+    - [ ] Local song converter
+        - [x] Feature
+        - [ ] Strong error handling
 
 - [ ] GUI
+    - [ ] Basic control / comunication stuff
+    ?
 
 - [ ] TUI
+    - [ ] Basic control / comunication stuff
 
 - [ ] CLI
+    - [x] Basic control / comunication stuff
 

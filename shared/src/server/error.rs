@@ -1,5 +1,5 @@
 #[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
-pub enum Error{
+pub enum Error {
     #[error("This is a test error and shouldn't be used in any public context")]
     Test,
 
@@ -7,12 +7,11 @@ pub enum Error{
     PlayerError(#[from] PlayerError),
 
     #[error("{0}")]
-    SocketError(String)
+    SocketError(String),
 }
 
-
 #[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
-pub enum PlayerError{
+pub enum PlayerError {
     #[error("This is a test error and shouldn't be used in any public context")]
     Test,
 
@@ -20,14 +19,14 @@ pub enum PlayerError{
     EmptyStack,
 
     #[error("{name} player failled to initialize due to: {error}")]
-    Initialisation{
-        name: String,
-        error: String
-    },
+    Initialisation { name: String, error: String },
 
     #[error("Could not read file: {target} due to: {error}")]
-    FileRead{
-        target: String,
-        error: String
-    },
+    FileRead { target: String, error: String },
+
+    #[error("Could not set the device to {device} due to: {e}")]
+    SetDeviceError { device: String, e: String },
+
+    #[error("Could not seek to the requested time due to: {0}")]
+    SeekError(String),
 }

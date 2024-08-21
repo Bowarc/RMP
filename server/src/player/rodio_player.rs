@@ -2,52 +2,67 @@ pub struct RodioPlayer {
     config: crate::config::PlayerConfig,
 
     sink: rodio::Sink,
-    os: rodio::OutputStream,
+
+    // This needs to be kept alive even tho it's not explicitly used,
+    // see <https://docs.rs/rodio/latest/rodio/struct.OutputStream.html> and <https://github.com/Bowarc/RMP/issues/3> for more informaton
+    _os: rodio::OutputStream,
 
     queue: Vec<shared::song::Song>,
+    queue_pointer: Option<u64>,// I don't think we need more than u8 but eh
 }
 
 impl RodioPlayer {
     pub fn new(config: crate::config::PlayerConfig) -> Result<Self, crate::error::PlayerError> {
         use {
             crate::error::PlayerError,
-            rodio::{OutputStream, Sink},
+            rodio::{DeviceTrait as _, OutputStream, Sink},
         };
 
+        let devices = shared::audio_device_utils::list_host_devices()
+            .iter()
+            .map(|d| d.name().unwrap_or("UNKNOWN_NAME".to_string()))
+            .map(|dn| format!("  {dn}\n"))
+            .collect::<String>();
+
         debug!(
-            "Creating a rodio player with song path: {}",
+            "Creating a rodio player\nSong path: {}\nDevice list:[\n{devices}]",
             config.song_path().canonicalize().unwrap().display()
         );
-        let (stream /* Is it not working because im dropping that thing ?*/, handle) =
+
+        // Is it not working because im dropping that thing ?
+        // Yes, see #3
+        let (stream, handle) =
             OutputStream::try_default().map_err(|e| PlayerError::Initialisation {
                 name: "Rodio".to_string(),
                 error: e.to_string(),
             })?;
 
-        use rodio::cpal;
-        use rodio::cpal::traits::{HostTrait,DeviceTrait};
+        // let (stream, handle) = match shared::audio_device_utils::get_device_by_name(
+        //     "SteelSeries Sonar - Aux (SteelSeries Sonar Virtual Audio Device)",
+        // ) {
+        //     Ok(os_osh) => os_osh,
+        //     Err(e_os_osh) => {
+        //         warn!("Could not get the requested device, falling back to default.");
+        //         e_os_osh
+        //     }
+        // };
 
-        cpal::default_host()
-            .output_devices()
-            .unwrap()
-            .for_each(|device| {
-                let dev: rodio::Device = device.into();
-                let devName: String = dev.name().unwrap();
-                debug!(" # Device : {}", devName);
-            });
-
-        let sink =  Sink::try_new(&handle).map_err(|e| PlayerError::Initialisation {
+        let mut sink = Sink::try_new(&handle).map_err(|e| PlayerError::Initialisation {
             name: "Rodio".to_string(),
             error: e.to_string(),
         })?;
+
+        sink.pause(); // Not playing, why not paused ?
 
         Ok(Self {
             config,
 
             sink,
-            os: stream,
+
+            _os: stream,
 
             queue: vec![],
+            queue_pointer: None,
         })
     }
 }
@@ -93,9 +108,7 @@ impl super::Player for RodioPlayer {
 
         self.sink.append(decoder);
         self.sink.play();
-        // std::thread::sleep(std::time::Duration::from_secs(5));
         debug!("Rodio player set to play !");
-        debug!("{}", self.sink.is_paused());
         Ok(())
     }
 
@@ -154,10 +167,66 @@ impl super::Player for RodioPlayer {
         Ok(self.sink.volume())
     }
 
-    fn update(&mut self) -> super::Result<()> {
-        if self.sink.empty() && !self.queue.is_empty() {
-            let _ = self.play();
+    fn set_device_by_name(&mut self, new_device_name: &str) -> super::Result<()> {
+        use rodio::Sink;
+        // Do you really need to create a new sink ? :c
+        // well, let's try to get the most information about the current one, and replace it
+
+        let Ok((os, osh)) = shared::audio_device_utils::get_device_by_name(&new_device_name)
+        else {
+            return Err(crate::error::PlayerError::Initialisation {
+                name: "Rodio".to_string(),
+                error: format!("Could not initialise requested device ({new_device_name})"),
+            });
+        };
+
+        let Ok(new_sink) = Sink::try_new(&osh) else{
+            panic!()
+        };
+
+        new_sink.pause(); // pause by default, see after
+
+        new_sink.set_volume(self.sink.volume());
+
+        if !self.sink.is_paused(){
+            debug!("The current sink is playing, let's try to set the other one as playing too!");
+
+            let current_pos = self.sink.get_pos();
+
+            let old_sink = std::mem::replace(&mut self.sink, new_sink);
+            let old_os = std::mem::replace(&mut self._os, os); // important
+
+            if let Err(e) = self.play(){
+                error!("{e}");
+
+                self.sink = old_sink;
+                self._os = old_os
+            }
+
+            self.set_pos(current_pos)?;
+
         }
+
+        debug!("Successfully swapped output device to: {new_device_name}");
+
+        Ok(())
+    }
+
+    fn set_pos(&mut self, pos: std::time::Duration) -> super::Result<()> {
+        self.sink.try_seek(pos).map_err(|s_e|{
+            crate::error::PlayerError::SeekError(s_e.to_string())
+        })
+    }
+
+    fn pos(&self) -> super::Result<std::time::Duration> {
+        todo!()
+    }
+
+    fn update(&mut self) -> super::Result<()> {
+        // if self.sink.empty() && !self.queue.is_empty() {
+        //     debug!("Sink is empty but queue isn't, setting sink to play mode !");
+        //     let _ = self.play();
+        // }
 
         Ok(())
     }

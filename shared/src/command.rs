@@ -16,6 +16,10 @@ pub enum PlayerCommand {
     SetVolume(f32),
     GetVolume,
 
+    SetPosition(std::time::Duration),
+    GetPosition,
+
+    SetDeviceName(String)
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]

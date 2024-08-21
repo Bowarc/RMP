@@ -1,10 +1,6 @@
 // Not a big fan of oop but let's try and we'll see later it that causes a problem
 // Wasn't long lmao
 
-use std::os::windows::io::NullHandleError;
-
-use networking::{proxy, Message};
-
 pub fn recv_commands(
     proxy_opt: &mut Option<
         networking::proxy::ProxyController<
@@ -14,7 +10,10 @@ pub fn recv_commands(
     >,
     music_player: &mut Box<dyn crate::player::Player>,
 ) {
-    use shared::message::{ClientMessage, ServerMessage};
+    use {
+        networking::proxy::ProxyMessage,
+        shared::message::{ClientMessage, ServerMessage},
+    };
 
     let Some(proxy) = proxy_opt else {
         return;
@@ -24,7 +23,7 @@ pub fn recv_commands(
         let pm = match proxy.try_recv() {
             Ok(message) => message,
             Err(e) => {
-                if e != std::sync::mpsc::TryRecvError::Empty{
+                if e != std::sync::mpsc::TryRecvError::Empty {
                     error!("{e}");
                     *proxy_opt = None;
                 }
@@ -32,8 +31,8 @@ pub fn recv_commands(
             }
         };
         let cm = match pm {
-            proxy::ProxyMessage::Forward(msg) => msg,
-            proxy::ProxyMessage::ConnectionResetError | proxy::ProxyMessage::Exit => {
+            ProxyMessage::Forward(msg) => msg,
+            ProxyMessage::ConnectionResetError | ProxyMessage::Exit => {
                 *proxy_opt = None;
                 break;
             }
@@ -55,9 +54,7 @@ pub fn recv_commands(
             },
             ClientMessage::Ping => {
                 if let Err(e) = proxy.send(ServerMessage::Pong) {
-                    error!(
-                        "Failed to send back pong message to client due to: {e}",
-                    );
+                    error!("Failed to send back pong message to client due to: {e}",);
                 }
             }
             ClientMessage::Pong => (),
@@ -66,7 +63,10 @@ pub fn recv_commands(
 }
 
 pub fn handle_player_command(
-    proxy: &mut networking::proxy::ProxyController<shared::message::ClientMessage, shared::message::ServerMessage>,
+    proxy: &mut networking::proxy::ProxyController<
+        shared::message::ClientMessage,
+        shared::message::ServerMessage,
+    >,
     music_player: &mut Box<dyn crate::player::Player>,
     command: shared::command::PlayerCommand,
 ) -> crate::player::Result<()> {
@@ -85,6 +85,7 @@ pub fn handle_player_command(
 
             let _ = proxy.send(ServerMessage::PlayerStatePause);
         }
+
         PlayerCommand::AddToQueue(id) => {
             music_player.add_queue(id)?;
 
@@ -100,6 +101,7 @@ pub fn handle_player_command(
 
             let _ = proxy.send(ServerMessage::PlayerQueueUpdated(music_player.queue()?));
         }
+
         PlayerCommand::SetVolume(val) => {
             music_player.set_volume(val)?;
             let _ = proxy.send(ServerMessage::PlayerVolume(music_player.volume()?));
@@ -107,12 +109,36 @@ pub fn handle_player_command(
         PlayerCommand::GetVolume => {
             let _ = proxy.send(ServerMessage::PlayerVolume(music_player.volume()?));
         }
+
+        PlayerCommand::SetDeviceName(new_device_name) => {
+            use shared::server::error::{Error, PlayerError};
+
+            let message = match music_player.set_device_by_name(&new_device_name) {
+                Ok(_) => ServerMessage::AudioDeviceChanged(new_device_name),
+                Err(e) => ServerMessage::Error(Error::PlayerError(PlayerError::SetDeviceError {
+                    device: new_device_name,
+                    e: e.to_string(),
+                })),
+            };
+            let _ = proxy.send(message);
+        }
+
+        PlayerCommand::SetPosition(pos) => {
+            music_player.set_pos(pos)?;
+            let _ = proxy.send(ServerMessage::PositionChanged(music_player.pos()?)); // qol for client sync
+        }
+        PlayerCommand::GetPosition => {
+            let _ = proxy.send(ServerMessage::PositionChanged(music_player.pos()?));
+        }
     }
     Ok(())
 }
 
 pub fn handle_downloader_command(
-    proxy: &mut networking::proxy::ProxyController<shared::message::ClientMessage, shared::message::ServerMessage>,
+    proxy: &mut networking::proxy::ProxyController<
+        shared::message::ClientMessage,
+        shared::message::ServerMessage,
+    >,
     music_player: &mut Box<dyn crate::player::Player>,
     command: shared::command::DownloaderCommand,
 ) {

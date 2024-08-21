@@ -21,8 +21,9 @@ pub enum ServerMessage {
 
     PlayerQueueUpdated(Vec<crate::song::Song>),
 
+    AudioDeviceChanged(String),
 
-
+    PositionChanged(std::time::Duration),
 
 
     // downloader
