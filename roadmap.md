@@ -3,6 +3,8 @@
         - [x] Load a song
         - [x] Play queued song
         - [ ] Next song is played when current is done
+        - [x] swap output device (even during playing)
+        - [x] Seek
         - [ ] Error handling
     - [ ] Playlist manager (?)
     - [ ] Downloader
