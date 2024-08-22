@@ -1,8 +1,5 @@
 pub fn cmd() -> clap::Command {
-    use {
-        clap::{arg, Command},
-        std::time::Duration,
-    };
+    use clap::{arg, Command};
 
     Command::new("CLI client")
         .about("CLI client for RMP")
@@ -45,7 +42,7 @@ pub fn cmd() -> clap::Command {
                 .alias("s")
                 .arg(
                     arg!(<VALUE> "The amount as float")
-                    .value_parser(clap::value_parser!(f64))
+                    .value_parser(clap::value_parser!(f32))
                 )
                 .arg_required_else_help(true)
             )
@@ -55,7 +52,7 @@ pub fn cmd() -> clap::Command {
                 .arg(
                     arg!(<AMNT> "The amount as float")
                     .required(false)
-                    .value_parser(clap::value_parser!(f64))
+                    .value_parser(clap::value_parser!(f32))
                     .default_value("0.5")
                 )
             )
@@ -65,7 +62,7 @@ pub fn cmd() -> clap::Command {
                 .arg(
                     arg!(<AMNT> "The amount as float")
                     .required(false)
-                    .value_parser(clap::value_parser!(f64))
+                    .value_parser(clap::value_parser!(f32))
                     .default_value("0.5")
                 )
             )

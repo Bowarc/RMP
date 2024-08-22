@@ -1,3 +1,7 @@
+pub mod queue;
+pub mod volume;
+pub mod device;
+
 type Client = shared::client::Client;
 
 pub fn play(client: &mut Client) {

@@ -2,7 +2,6 @@ mod cmd_parser;
 mod commands;
 
 use shared::command::{Command, PlayerCommand};
-use shared::message::ClientMessage;
 use std::str::FromStr;
 
 #[macro_use]
@@ -15,106 +14,82 @@ fn main() {
         .add_filter("networking", log::LevelFilter::Debug);
     logger::init(cfg, Some("./log/server.log"));
 
+    let mut client = shared::client::Client::new().unwrap();
+
     match cmd_parser::cmd().get_matches().subcommand() {
-        Some(("play", _args)) => {
-            debug!("Play command");
-            unimplemented!()
-        }
-        Some(("pause", _args)) => {
-            debug!("Pause command");
-            unimplemented!()
-        }
+        Some(("play", _args)) => commands::player::play(&mut client),
+        Some(("pause", _args)) => commands::player::pause(&mut client),
         Some(("queue", args)) => {
-            debug!("Queue");
 
             match args.subcommand() {
                 Some(("add", args)) => {
-                    debug!("Add");
                     let arg = args.get_one::<String>("ARG").unwrap();
 
-                    if let Ok(uuid) = uuid::Uuid::from_str(arg) {
-                        debug!("uuid: {uuid:?}");
+                    let si = if let Ok(uuid) = uuid::Uuid::from_str(arg) {
+                        commands::player::queue::SongIdentifier::Uuid(uuid)
                     } else {
-                        debug!("name: {arg:?}");
-                    }
-                    unimplemented!()
+                        commands::player::queue::SongIdentifier::Title(arg.to_owned())
+                    };
+
+                    commands::player::queue::add(&mut client, si);
                 }
                 Some(("remove", args)) => {
-                    debug!("Remove");
                     let arg = args.get_one::<String>("ARG").unwrap();
 
-                    if let Ok(uuid) = uuid::Uuid::from_str(arg) {
-                        debug!("uuid: {uuid:?}");
+                    let si = if let Ok(uuid) = uuid::Uuid::from_str(arg) {
+                        commands::player::queue::SongIdentifier::Uuid(uuid)
                     } else {
-                        debug!("name: {arg:?}");
-                    }
-                    unimplemented!()
+                        commands::player::queue::SongIdentifier::Title(arg.to_owned())
+                    };
+
+                    commands::player::queue::remove(&mut client, si);
                 }
-                Some(("clear", args)) => {
-                    debug!("Clear");
-                    unimplemented!()
+                Some(("clear", _args)) => {
+                    commands::player::queue::clear(&mut client)
                 }
-                Some(unhandled) => {
-                    error!("Unexpected queue subcommand: {}", unhandled.0)
-                }
-                None => todo!(),
+                _ => unreachable!()
             }
         }
         Some(("volume", args)) => {
-            debug!("Volume");
             match args.subcommand() {
                 Some(("get", _args)) => {
-                    debug!("get");
-                    unimplemented!()
+                    let out = commands::player::volume::get(&mut client);
+
+                    debug!("{out}")
                 }
                 Some(("set", args)) => {
-                    debug!("Remove");
-                    let amount = args.get_one::<f64>("AMNT").unwrap();
-                    debug!("{amount}");
-                    unimplemented!()
+                    let amount = args.get_one::<f32>("AMNT").unwrap();
+                    commands::player::volume::set(&mut client,*amount);
                 }
                 Some(("up", args)) => {
-                    debug!("Up");
-                    let amount = args.get_one::<f64>("AMNT").unwrap();
-                    debug!("{amount}");
-                    unimplemented!()
+                    let amount = args.get_one::<f32>("AMNT").unwrap();
+
+                    commands::player::volume::up(&mut client, *amount)
                 }
                 Some(("down", args)) => {
-                    debug!("Down");
-                    let amount = args.get_one::<f64>("AMNT").unwrap();
-                    debug!("{amount}");
-                    unimplemented!()
+                    let amount = args.get_one::<f32>("AMNT").unwrap();
+
+                    commands::player::volume::down(&mut client, *amount)
                 }
-                Some(unhandled) => {
-                    error!("Unexpected volume subcommand: {}", unhandled.0);
-                    unimplemented!()
-                }
-                None => todo!(),
+                _ => unreachable!()
             }
         }
         Some(("device", args)) => {
-            debug!("Device");
             match args.subcommand() {
                 Some(("get", _args)) => {
-                    debug!("Get");
-                    unimplemented!()
+                    let name = commands::player::device::get(&mut client);
+
+                    debug!("{name}")
                 }
                 Some(("set", args)) => {
-                    debug!("Set");
                     let device_name = args.get_one::<String>("NAME").unwrap();
-                    debug!("{device_name}");
-                    unimplemented!()
+                    commands::player::device::set(&mut client, device_name.to_owned())
                 }
-                Some(unhandled) => {
-                    error!("Unexpected volume subcommand: {}", unhandled.0);
-                    unimplemented!()
-                }
-                None => todo!(),
+                 _ => unreachable!()
             }
         }
-        Some(unhandled) => {
-            debug!("Unhandled {unhandled:?}")
-        }
-        None => todo!(),
+        _ => unreachable!()
+
+        // Abouuut downloader ? :D
     }
 }
