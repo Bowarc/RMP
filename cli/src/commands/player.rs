@@ -6,10 +6,7 @@ type Client = shared::client::Client;
 
 pub fn play(client: &mut Client) {
     use {
-        shared::{
-            command::{Command, PlayerCommand},
-            message::{ClientMessage, ServerMessage},
-        },
+        shared::message::ClientMessage,
         std::time::Duration,
     };
 
@@ -24,10 +21,7 @@ pub fn play(client: &mut Client) {
 
 pub fn pause(client: &mut Client) {
     use {
-        shared::{
-            command::{Command, PlayerCommand},
-            message::{ClientMessage, ServerMessage},
-        },
+        shared::message::ClientMessage,
         std::time::Duration,
     };
 

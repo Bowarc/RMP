@@ -29,4 +29,7 @@ pub enum PlayerError {
 
     #[error("Could not seek to the requested time due to: {0}")]
     SeekError(String),
+
+    #[error("{name} player found an error while using it's audio device: {e}")]
+    DeviceError { name: String, e: String },
 }

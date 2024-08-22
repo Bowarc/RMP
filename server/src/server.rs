@@ -138,17 +138,17 @@ pub fn handle_player_command(
 }
 
 pub fn handle_downloader_command(
-    proxy: &mut networking::proxy::ProxyController<
+    _proxy: &mut networking::proxy::ProxyController<
         shared::message::ClientMessage,
         shared::message::ServerMessage,
     >,
-    music_player: &mut Box<dyn crate::player::Player>,
+    _music_player: &mut Box<dyn crate::player::Player>,
     command: shared::command::DownloaderCommand,
 ) {
     use shared::command::DownloaderCommand;
 
     match command {
-        DownloaderCommand::StartDownload(url) => unimplemented!(),
+        DownloaderCommand::StartDownload(_url) => unimplemented!(),
         DownloaderCommand::StopCurrentDownload => unimplemented!(),
         DownloaderCommand::FetchCurrent => unimplemented!(),
         DownloaderCommand::FetchQueue => unimplemented!(),

@@ -1,4 +1,4 @@
-pub fn list_host_devices() -> Vec<rodio::Device> {
+pub fn list_host_devices() -> Vec<rodio::cpal::Device> {
     use rodio::cpal::{self, traits::HostTrait as _};
 
     // I have no guaranties that this list will stay the same throughout the execution of my program, do i ?
@@ -6,21 +6,23 @@ pub fn list_host_devices() -> Vec<rodio::Device> {
     // Doesn't look like it..
     // can't even use that for id'ing devices ..
 
+    // well, let's hope names are consistant
+
 }
 
 // Returns default if not found
 pub fn get_device_by_name(
     target_device_name: &str,
 ) -> Result<
-    (rodio::OutputStream, rodio::OutputStreamHandle),
-    (rodio::OutputStream, rodio::OutputStreamHandle),
+    rodio::cpal::Device,
+    rodio::cpal::Device,
 > {
     use rodio::{
         cpal::{
             self,
             traits::{DeviceTrait as _, HostTrait as _},
         },
-        Device, OutputStream,
+        Device,
     };
 
     let host = cpal::default_host();
@@ -37,10 +39,14 @@ pub fn get_device_by_name(
             continue;
         }
 
-        if let Ok(s_sh) = OutputStream::try_from_device(&device) {
-            return Ok(s_sh);
-        }
+        return Ok(device)
     }
 
-    Err(OutputStream::try_default().unwrap())
+    Err(get_default_device())
+}
+
+#[inline]
+pub fn get_default_device() -> rodio::cpal::Device{
+    use rodio::cpal::traits::HostTrait as _;
+    rodio::cpal::default_host().default_output_device().unwrap()
 }

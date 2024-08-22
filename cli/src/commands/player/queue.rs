@@ -1,6 +1,6 @@
 use shared::{
     command::{Command, PlayerCommand},
-    message::{ClientMessage, ServerMessage},
+    message::ClientMessage,
 };
 
 pub enum SongIdentifier {
