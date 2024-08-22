@@ -219,7 +219,8 @@ impl super::Player for RodioPlayer {
     }
 
     fn pos(&self) -> super::Result<std::time::Duration> {
-        todo!()
+        Ok(self.sink.get_pos())
+
     }
 
     fn update(&mut self) -> super::Result<()> {
