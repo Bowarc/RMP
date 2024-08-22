@@ -1,3 +1,6 @@
+mod cmd_parser;
+mod commands;
+
 use shared::command::{Command, PlayerCommand};
 use shared::message::ClientMessage;
 use std::str::FromStr;
@@ -12,76 +15,106 @@ fn main() {
         .add_filter("networking", log::LevelFilter::Debug);
     logger::init(cfg, Some("./log/server.log"));
 
-    let mut client = shared::client::Client::new().unwrap();
+    match cmd_parser::cmd().get_matches().subcommand() {
+        Some(("play", _args)) => {
+            debug!("Play command");
+            unimplemented!()
+        }
+        Some(("pause", _args)) => {
+            debug!("Pause command");
+            unimplemented!()
+        }
+        Some(("queue", args)) => {
+            debug!("Queue");
 
-    client.send(ClientMessage::Ping).unwrap(); // deref works :D
+            match args.subcommand() {
+                Some(("add", args)) => {
+                    debug!("Add");
+                    let arg = args.get_one::<String>("ARG").unwrap();
 
-    debug!(
-        "Server sent {:?}",
-        client.recv(std::time::Duration::from_millis(100))
-    );
+                    if let Ok(uuid) = uuid::Uuid::from_str(arg) {
+                        debug!("uuid: {uuid:?}");
+                    } else {
+                        debug!("name: {arg:?}");
+                    }
+                    unimplemented!()
+                }
+                Some(("remove", args)) => {
+                    debug!("Remove");
+                    let arg = args.get_one::<String>("ARG").unwrap();
 
-    debug!("Hello, world!");
-
-    // let song = shared::song::convert_local(
-    //     "d:/dev/rust/projects/rmp/songs/840a55ac-1e35-4017-96ff-b997cc12d611".into(), // Not supported
-    //     "d:/dev/rust/projects/rmp/songs/".into(),
-    // );
-    // debug!("Done: {song:?}")
-
-    client
-        .send(ClientMessage::Command(Command::Player(
-            PlayerCommand::AddToQueue(
-                uuid::Uuid::from_str("840a55ac-1e35-4017-96ff-b997cc12d611").unwrap(),
-            ),
-        )))
-        .unwrap();
-
-    debug!(
-        "Server sent {:?}",
-        client.recv(std::time::Duration::from_millis(100))
-    );
-
-    client
-        .send(ClientMessage::Command(Command::Player(
-            PlayerCommand::SetVolume(0.09),
-        )))
-        .unwrap();
-
-    debug!(
-        "Server sent {:?}",
-        client.recv(std::time::Duration::from_millis(100))
-    );
-
-    // client
-    //     .send(ClientMessage::Command(Command::Player(PlayerCommand::Play)))
-    //     .unwrap();
-
-    // debug!(
-    //     "Server sent {:?}",
-    //     client.recv(std::time::Duration::from_millis(100))
-    // );
-
-    #[allow(deprecated)] // temporary
-    std::thread::sleep_ms(5000);
-
-    client
-        .send(ClientMessage::Command(Command::Player(
-            PlayerCommand::Pause,
-        )))
-        .unwrap();
-    debug!(
-        "Server sent {:?}",
-        client.recv(std::time::Duration::from_millis(100))
-    );
-
-    client
-        .send(ClientMessage::Command(Command::Player(
-            PlayerCommand::ClearQueue,
-        )))
-        .unwrap();
-    debug!(
-        "Server sent {:?}",
-        client.recv(std::time::Duration::from_millis(100))
-    );
+                    if let Ok(uuid) = uuid::Uuid::from_str(arg) {
+                        debug!("uuid: {uuid:?}");
+                    } else {
+                        debug!("name: {arg:?}");
+                    }
+                    unimplemented!()
+                }
+                Some(("clear", args)) => {
+                    debug!("Clear");
+                    unimplemented!()
+                }
+                Some(unhandled) => {
+                    error!("Unexpected queue subcommand: {}", unhandled.0)
+                }
+                None => todo!(),
+            }
+        }
+        Some(("volume", args)) => {
+            debug!("Volume");
+            match args.subcommand() {
+                Some(("get", _args)) => {
+                    debug!("get");
+                    unimplemented!()
+                }
+                Some(("set", args)) => {
+                    debug!("Remove");
+                    let amount = args.get_one::<f64>("AMNT").unwrap();
+                    debug!("{amount}");
+                    unimplemented!()
+                }
+                Some(("up", args)) => {
+                    debug!("Up");
+                    let amount = args.get_one::<f64>("AMNT").unwrap();
+                    debug!("{amount}");
+                    unimplemented!()
+                }
+                Some(("down", args)) => {
+                    debug!("Down");
+                    let amount = args.get_one::<f64>("AMNT").unwrap();
+                    debug!("{amount}");
+                    unimplemented!()
+                }
+                Some(unhandled) => {
+                    error!("Unexpected volume subcommand: {}", unhandled.0);
+                    unimplemented!()
+                }
+                None => todo!(),
+            }
+        }
+        Some(("device", args)) => {
+            debug!("Device");
+            match args.subcommand() {
+                Some(("get", _args)) => {
+                    debug!("Get");
+                    unimplemented!()
+                }
+                Some(("set", args)) => {
+                    debug!("Set");
+                    let device_name = args.get_one::<String>("NAME").unwrap();
+                    debug!("{device_name}");
+                    unimplemented!()
+                }
+                Some(unhandled) => {
+                    error!("Unexpected volume subcommand: {}", unhandled.0);
+                    unimplemented!()
+                }
+                None => todo!(),
+            }
+        }
+        Some(unhandled) => {
+            debug!("Unhandled {unhandled:?}")
+        }
+        None => todo!(),
+    }
 }
