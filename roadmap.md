@@ -9,7 +9,7 @@
     - [ ] Playlist manager (?)
     - [ ] Downloader
         - [ ] Queue a download request
-        - [ ] Execute a download request
+        - [x] Execute a download request
         - [ ] Cleanly stop a download request
     - [ ] Local song converter
         - [x] Feature
@@ -20,8 +20,9 @@
     ?
 
 - [ ] TUI
+    - [x] Basic control / comunication stuff
     - [x] Player argument / command parsing & execution
-    - [ ] Basic control / comunication stuff
+    - [ ] (WIP) Downloader control
 
 - [ ] CLI
     - [x] Basic control / comunication stuff
