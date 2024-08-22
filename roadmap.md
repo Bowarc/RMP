@@ -20,6 +20,7 @@
     ?
 
 - [ ] TUI
+    - [x] Player argument / command parsing & execution
     - [ ] Basic control / comunication stuff
 
 - [ ] CLI
