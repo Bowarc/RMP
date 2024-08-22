@@ -9,11 +9,20 @@ path = "src/main.rs"
 
 [dependencies]
 shared = { path = "../shared" }
-logger.workspace = true
-log.workspace = true
-uuid.workspace = true
-time.workspace = true
-networking.workspace = true
-rodio.workspace = true
 ctrlc = "3.4.5"
 spin_sleep_util = "0.1.1"
+rusty_ytdl = {version = "0.7.4", features = ["ffmpeg"] }
+# futures-lite = { version = "2.3.0", default-features=false, features = ["std"] }
+
+logger.workspace = true
+log.workspace = true
+time.workspace = true
+networking.workspace = true
+threading.workspace = true
+
+uuid.workspace = true
+rodio.workspace = true
+
+tokio = { version = "1.39.3", features = ["rt-multi-thread"] }
+ron.workspace = true
+

@@ -1,7 +1,6 @@
 mod cmd_parser;
 mod commands;
 
-
 #[macro_use]
 extern crate log; // trace, debug, info, warn, error
 
@@ -15,70 +14,74 @@ fn main() {
     let mut client = shared::client::Client::new().unwrap();
 
     match cmd_parser::cmd().get_matches().subcommand() {
-        Some(("play", _args)) => commands::player::play(&mut client),
-        Some(("pause", _args)) => commands::player::pause(&mut client),
-        Some(("queue", args)) => match args.subcommand() {
-            Some(("add", args)) => {
-                use std::str::FromStr as _;
-                let arg = args.get_one::<String>("ARG").unwrap();
-
-                let si = if let Ok(uuid) = uuid::Uuid::from_str(arg) {
-                    commands::player::queue::SongIdentifier::Uuid(uuid)
-                } else {
-                    commands::player::queue::SongIdentifier::Title(arg.to_owned())
-                };
-
-                commands::player::queue::add(&mut client, si);
-            }
-            Some(("remove", args)) => {
-                use std::str::FromStr as _;
-                let arg = args.get_one::<String>("ARG").unwrap();
-
-                let si = if let Ok(uuid) = uuid::Uuid::from_str(arg) {
-                    commands::player::queue::SongIdentifier::Uuid(uuid)
-                } else {
-                    commands::player::queue::SongIdentifier::Title(arg.to_owned())
-                };
-
-                commands::player::queue::remove(&mut client, si);
-            }
-            Some(("clear", _args)) => commands::player::queue::clear(&mut client),
-            _ => unreachable!(),
+        Some(("player", args)) => match args.subcommand() {
+            Some(("play", _args)) => commands::player::play(&mut client),
+            Some(("pause", _args)) => commands::player::pause(&mut client),
+            Some(("queue", args)) => match args.subcommand() {
+                Some(("add", args)) => {
+                    use std::str::FromStr as _;
+                    let arg = args.get_one::<String>("ARG").unwrap();
+                    let si = if let Ok(uuid) = uuid::Uuid::from_str(arg) {
+                        commands::player::queue::SongIdentifier::Uuid(uuid)
+                    } else {
+                        commands::player::queue::SongIdentifier::Title(arg.to_owned())
+                    };
+                    commands::player::queue::add(&mut client, si);
+                }
+                Some(("remove", args)) => {
+                    use std::str::FromStr as _;
+                    let arg = args.get_one::<String>("ARG").unwrap();
+                    let si = if let Ok(uuid) = uuid::Uuid::from_str(arg) {
+                        commands::player::queue::SongIdentifier::Uuid(uuid)
+                    } else {
+                        commands::player::queue::SongIdentifier::Title(arg.to_owned())
+                    };
+                    commands::player::queue::remove(&mut client, si);
+                }
+                Some(("clear", _args)) => commands::player::queue::clear(&mut client),
+                _ => unreachable!(),
+            },
+            Some(("volume", args)) => match args.subcommand() {
+                Some(("get", _args)) => {
+                    let out = commands::player::volume::get(&mut client);
+                    debug!("{out}")
+                }
+                Some(("set", args)) => {
+                    let amount = args.get_one::<f32>("VALUE").unwrap();
+                    commands::player::volume::set(&mut client, *amount);
+                }
+                Some(("up", args)) => {
+                    let amount = args.get_one::<f32>("AMNT").unwrap();
+                    commands::player::volume::up(&mut client, *amount)
+                }
+                Some(("down", args)) => {
+                    let amount = args.get_one::<f32>("AMNT").unwrap();
+                    commands::player::volume::down(&mut client, *amount)
+                }
+                _ => unreachable!(),
+            },
+            Some(("device", args)) => match args.subcommand() {
+                Some(("get", _args)) => {
+                    let name = commands::player::device::get(&mut client);
+                    debug!("{name}")
+                }
+                Some(("set", args)) => {
+                    let device_name = args.get_one::<String>("NAME").unwrap();
+                    commands::player::device::set(&mut client, device_name.to_owned())
+                }
+                _ => unreachable!(),
+            },
+            _ => unreachable!(), // Abouuut downloader ? :D
         },
-        Some(("volume", args)) => match args.subcommand() {
-            Some(("get", _args)) => {
-                let out = commands::player::volume::get(&mut client);
-
-                debug!("{out}")
+        Some(("downloader", args)) => {
+            match args.subcommand() {
+                Some(("start", args)) => {
+                    let url = args.get_one::<String>("URL").unwrap(); // TODO: Take care of this one
+                    commands::downloader::download(&mut client, url.to_owned());
+                }
+                _ => unimplemented!(),
             }
-            Some(("set", args)) => {
-                let amount = args.get_one::<f32>("VALUE").unwrap();
-                commands::player::volume::set(&mut client, *amount);
-            }
-            Some(("up", args)) => {
-                let amount = args.get_one::<f32>("AMNT").unwrap();
-
-                commands::player::volume::up(&mut client, *amount)
-            }
-            Some(("down", args)) => {
-                let amount = args.get_one::<f32>("AMNT").unwrap();
-
-                commands::player::volume::down(&mut client, *amount)
-            }
-            _ => unreachable!(),
-        },
-        Some(("device", args)) => match args.subcommand() {
-            Some(("get", _args)) => {
-                let name = commands::player::device::get(&mut client);
-
-                debug!("{name}")
-            }
-            Some(("set", args)) => {
-                let device_name = args.get_one::<String>("NAME").unwrap();
-                commands::player::device::set(&mut client, device_name.to_owned())
-            }
-            _ => unreachable!(),
-        },
-        _ => unreachable!(), // Abouuut downloader ? :D
+        }
+        _ => unimplemented!(),
     }
 }

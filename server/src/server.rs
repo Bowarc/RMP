@@ -148,7 +148,24 @@ pub fn handle_downloader_command(
     use shared::command::DownloaderCommand;
 
     match command {
-        DownloaderCommand::StartDownload(_url) => unimplemented!(),
+        DownloaderCommand::StartDownload(url) => {
+            debug!("Received dl request");
+            let config = crate::downloader::DownloadConfig{
+                url
+            };
+
+            let mut handle = crate::downloader::download(config);
+
+            // let's do blocking for now
+            let mut latest_prcentage = 0.;
+            while handle.running(){
+                handle.update();
+                if handle.download_percentage() != latest_prcentage{
+                    latest_prcentage = handle.download_percentage();
+                    debug!("{latest_prcentage}%")
+                }
+            }
+        },
         DownloaderCommand::StopCurrentDownload => unimplemented!(),
         DownloaderCommand::FetchCurrent => unimplemented!(),
         DownloaderCommand::FetchQueue => unimplemented!(),
