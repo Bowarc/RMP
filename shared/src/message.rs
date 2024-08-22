@@ -19,11 +19,11 @@ pub enum ServerMessage {
 
     PlayerVolume(f32), // returned also by setvolume (will make client synchronisation easier)
 
-    PlayerQueueUpdated(Vec<crate::song::Song>),
+    PlayerQueue(Vec<crate::song::Song>),
 
-    AudioDeviceChanged(String),
+    AudioDevice(String),
 
-    PositionChanged(std::time::Duration),
+    Position(std::time::Duration),
 
 
     // downloader

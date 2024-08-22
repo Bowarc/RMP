@@ -19,7 +19,10 @@ pub enum PlayerCommand {
     SetPosition(std::time::Duration),
     GetPosition,
 
-    SetDeviceName(String)
+    // Skip(u8), // Skip x songs
+
+    SetDeviceByName(String),
+    GetDeviceName
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]

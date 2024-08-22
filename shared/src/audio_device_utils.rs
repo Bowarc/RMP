@@ -1,7 +1,11 @@
 pub fn list_host_devices() -> Vec<rodio::Device> {
     use rodio::cpal::{self, traits::HostTrait as _};
 
+    // I have no guaranties that this list will stay the same throughout the execution of my program, do i ?
     cpal::default_host().output_devices().unwrap().collect()
+    // Doesn't look like it..
+    // can't even use that for id'ing devices ..
+
 }
 
 // Returns default if not found

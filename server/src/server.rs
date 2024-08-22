@@ -89,17 +89,17 @@ pub fn handle_player_command(
         PlayerCommand::AddToQueue(id) => {
             music_player.add_queue(id)?;
 
-            let _ = proxy.send(ServerMessage::PlayerQueueUpdated(music_player.queue()?));
+            let _ = proxy.send(ServerMessage::PlayerQueue(music_player.queue()?));
         }
         PlayerCommand::RemoveFromQueue(id) => {
             music_player.remove_queue(id)?;
 
-            let _ = proxy.send(ServerMessage::PlayerQueueUpdated(music_player.queue()?));
+            let _ = proxy.send(ServerMessage::PlayerQueue(music_player.queue()?));
         }
         PlayerCommand::ClearQueue => {
             music_player.clear_queue()?;
 
-            let _ = proxy.send(ServerMessage::PlayerQueueUpdated(music_player.queue()?));
+            let _ = proxy.send(ServerMessage::PlayerQueue(music_player.queue()?));
         }
 
         PlayerCommand::SetVolume(val) => {
@@ -110,11 +110,14 @@ pub fn handle_player_command(
             let _ = proxy.send(ServerMessage::PlayerVolume(music_player.volume()?));
         }
 
-        PlayerCommand::SetDeviceName(new_device_name) => {
+        PlayerCommand::GetDeviceName => {
+            let _ = proxy.send(ServerMessage::AudioDevice(music_player.audio_device()?));
+        }
+        PlayerCommand::SetDeviceByName(new_device_name) => {
             use shared::server::error::{Error, PlayerError};
 
             let message = match music_player.set_device_by_name(&new_device_name) {
-                Ok(_) => ServerMessage::AudioDeviceChanged(new_device_name),
+                Ok(_) => ServerMessage::AudioDevice(new_device_name),
                 Err(e) => ServerMessage::Error(Error::PlayerError(PlayerError::SetDeviceError {
                     device: new_device_name,
                     e: e.to_string(),
@@ -125,10 +128,10 @@ pub fn handle_player_command(
 
         PlayerCommand::SetPosition(pos) => {
             music_player.set_pos(pos)?;
-            let _ = proxy.send(ServerMessage::PositionChanged(music_player.pos()?)); // qol for client sync
+            let _ = proxy.send(ServerMessage::Position(music_player.pos()?)); // qol for client sync
         }
         PlayerCommand::GetPosition => {
-            let _ = proxy.send(ServerMessage::PositionChanged(music_player.pos()?));
+            let _ = proxy.send(ServerMessage::Position(music_player.pos()?));
         }
     }
     Ok(())
