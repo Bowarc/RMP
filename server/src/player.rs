@@ -7,6 +7,21 @@ pub trait Player {
     fn play(&mut self) -> Result<()>;
     fn pause(&mut self) -> Result<()>;
 
+    fn currently_playing(&self) -> Result<shared::song::Song> {
+        let q = self.queue()?;
+
+        let index = self.currently_playing_index()?;
+
+        if index >= q.len() as u64 {
+            // self.pause()?;
+            // self.clear_queue()?;
+            return Err(crate::error::PlayerError::Custom(String::from("An error occured while validating the queue: currently_playing_index was ouside the queue's range")));
+        };
+
+        Ok(q.get(index as usize).unwrap().clone()) // This unwrap is fine as we just checked if the index was inbounds
+    }
+    fn currently_playing_index(&self) -> Result<u64>;
+
     fn add_queue(&mut self, uuid: uuid::Uuid) -> Result<()>;
     fn remove_queue(&mut self, uuid: uuid::Uuid) -> Result<()>;
     fn clear_queue(&mut self) -> Result<()>;
@@ -25,4 +40,3 @@ pub trait Player {
 }
 
 // pub type playlist = Vec<uuid::Uuid>;
-

@@ -12,8 +12,16 @@ pub fn cmd() -> clap::Command {
     	    .subcommand(Command::new("play").alias("p"))
     	    .subcommand(Command::new("pause").alias("!p"))
             .subcommand(
+                Command::new("now_playing").alias("np")
+                .about("Get the name and the index(in queue) of the currenly playing song")
+            )
+            .subcommand(
             Command::new("queue").alias("q")
                 .about("Modify the RMP song queue")
+                .subcommand(
+                    Command::new("get").alias("g")
+                    .about("Retrieves the song queue")
+                )
                 .subcommand(
                 	Command::new("add").alias("a")
             		.about("Adds a given song name or UUID to RMP's song queue")
@@ -98,7 +106,7 @@ pub fn cmd() -> clap::Command {
                     )
                 )
                 .subcommand(
-                    Command::new("backwards")
+                    Command::new("backward")
                     .alias("b")
                     .arg(
                         arg!(<AMNT> "The amount of seconds")

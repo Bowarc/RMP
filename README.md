@@ -1,8 +1,9 @@
 ### Rust Music Player
 
 ## State
-Just started
+Rodio player is working well
 
+Basic downloader done, need to clean it up a bit
 ## Roadmap
 
 [Roadmap](./roadmap.md)

@@ -1,18 +1,16 @@
+pub mod device;
+pub mod position;
 pub mod queue;
 pub mod volume;
-pub mod device;
 
 type Client = shared::client::Client;
 
-pub fn play(client: &mut Client) {
-    use {
-        shared::message::ClientMessage,
-        std::time::Duration,
-    };
+use shared::command::{Command, PlayerCommand};
+use shared::message::{ClientMessage, ServerMessage};
+use std::time::Duration;
 
-    if let Err(e) = client.send(ClientMessage::Command(shared::command::Command::Player(
-        shared::command::PlayerCommand::Play,
-    ))) {
+pub fn play(client: &mut Client) {
+    if let Err(e) = client.send(ClientMessage::Command(Command::Player(PlayerCommand::Play))) {
         error!("{e}");
     }
 
@@ -20,16 +18,40 @@ pub fn play(client: &mut Client) {
 }
 
 pub fn pause(client: &mut Client) {
-    use {
-        shared::message::ClientMessage,
-        std::time::Duration,
-    };
-
-    if let Err(e) = client.send(ClientMessage::Command(shared::command::Command::Player(
-        shared::command::PlayerCommand::Pause,
+    if let Err(e) = client.send(ClientMessage::Command(Command::Player(
+        PlayerCommand::Pause,
     ))) {
         error!("{e}");
     }
 
     debug!("{:?}", client.recv(Duration::from_secs(1)))
+}
+
+pub fn now_playing(client: &mut Client) -> (shared::song::Song, u64) {
+    client
+        .send(ClientMessage::Command(Command::Player(
+            PlayerCommand::GetCurrentlyPlaying,
+        )))
+        .unwrap();
+
+    loop {
+        let Ok((_, message)) = client.recv(std::time::Duration::from_secs(1)) else {
+            panic!("Huh")
+        };
+
+        match message {
+            ServerMessage::CurrentlyPlaying { song, index } => return (song, index),
+            ServerMessage::Error(e) => {
+                panic!("{e}")
+            }
+            ServerMessage::Position(_)
+            | ServerMessage::PlayerVolume(_)
+            | ServerMessage::PlayerStatePause
+            | ServerMessage::PlayerStatePlay
+            | ServerMessage::PlayerQueue(_)
+            | ServerMessage::AudioDevice(_)
+            | ServerMessage::Ping
+            | ServerMessage::Pong => unreachable!(),
+        }
+    }
 }

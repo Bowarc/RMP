@@ -17,7 +17,17 @@ fn main() {
         Some(("player", args)) => match args.subcommand() {
             Some(("play", _args)) => commands::player::play(&mut client),
             Some(("pause", _args)) => commands::player::pause(&mut client),
+            Some(("now_playing", _args)) => {
+                let (song, index) = commands::player::now_playing(&mut client);
+
+                debug!("Currently playing ({index}) {title}", title = song.metadata().title());
+            }
             Some(("queue", args)) => match args.subcommand() {
+                Some(("get", _args)) => {
+                    let queue = commands::player::queue::get(&mut client);
+
+                    debug!("{:?}", queue.iter().map(|s| s.metadata().title().clone()).collect::<Vec<_>>());
+                }
                 Some(("add", args)) => {
                     use std::str::FromStr as _;
                     let arg = args.get_one::<String>("ARG").unwrap();
@@ -60,6 +70,28 @@ fn main() {
                 }
                 _ => unreachable!(),
             },
+            Some(("position", args)) => match args.subcommand(){
+                Some(("get", _args)) => {
+                    let pos = commands::player::position::get(&mut client);
+                    debug!("Player's currently at {pos:?}");
+                },
+                Some(("set", args)) => {
+                    let position_s = args.get_one::<u64>("VALUE").unwrap();
+
+                    commands::player::position::set(&mut client, std::time::Duration::from_secs(*position_s))
+                },
+                Some(("forward", args)) => {
+                    let position_s = args.get_one::<u64>("AMNT").unwrap();
+
+                    commands::player::position::forward(&mut client, std::time::Duration::from_secs(*position_s))
+                },
+                Some(("backward", args)) => {
+                    let position_s = args.get_one::<u64>("AMNT").unwrap();
+
+                    commands::player::position::backward(&mut client, std::time::Duration::from_secs(*position_s))
+                },
+                _ => unreachable!()
+            }
             Some(("device", args)) => match args.subcommand() {
                 Some(("get", _args)) => {
                     let name = commands::player::device::get(&mut client);
@@ -71,7 +103,8 @@ fn main() {
                 }
                 _ => unreachable!(),
             },
-            _ => unreachable!(), // Abouuut downloader ? :D
+
+            _ => unreachable!(),
         },
         Some(("downloader", args)) => {
             match args.subcommand() {
@@ -84,4 +117,8 @@ fn main() {
         }
         _ => unimplemented!(),
     }
+
+
+    // shared::song::convert_local("D:/dev/rust/projects/rmp/songs/", "D:/dev/rust/projects/rmp/songs/")
+
 }

@@ -85,7 +85,15 @@ pub fn handle_player_command(
 
             let _ = proxy.send(ServerMessage::PlayerStatePause);
         }
+        PlayerCommand::GetCurrentlyPlaying => {
+            let song = music_player.currently_playing()?;
+            let index = music_player.currently_playing_index()?;
 
+            let _ = proxy.send(ServerMessage::CurrentlyPlaying { song, index });
+        }
+        PlayerCommand::GetQueue => {
+            let _ = proxy.send(ServerMessage::PlayerQueue(music_player.queue()?));
+        }
         PlayerCommand::AddToQueue(id) => {
             music_player.add_queue(id)?;
 
@@ -150,22 +158,20 @@ pub fn handle_downloader_command(
     match command {
         DownloaderCommand::StartDownload(url) => {
             debug!("Received dl request");
-            let config = crate::downloader::DownloadConfig{
-                url
-            };
+            let config = crate::downloader::DownloadConfig { url };
 
             let mut handle = crate::downloader::download(config);
 
             // let's do blocking for now
             let mut latest_prcentage = 0.;
-            while handle.running(){
+            while handle.running() {
                 handle.update();
-                if handle.download_percentage() != latest_prcentage{
+                if handle.download_percentage() != latest_prcentage {
                     latest_prcentage = handle.download_percentage();
                     debug!("{latest_prcentage}%")
                 }
             }
-        },
+        }
         DownloaderCommand::StopCurrentDownload => unimplemented!(),
         DownloaderCommand::FetchCurrent => unimplemented!(),
         DownloaderCommand::FetchQueue => unimplemented!(),

@@ -17,6 +17,11 @@ pub enum ServerMessage {
     PlayerStatePause,
     PlayerStatePlay, // could use an enum w/ PlayerStateChanged but it might be overkill
 
+    CurrentlyPlaying{
+        song: crate::song::Song,
+        index: u64
+    },
+
     PlayerVolume(f32), // returned also by setvolume (will make client synchronisation easier)
 
     PlayerQueue(Vec<crate::song::Song>),

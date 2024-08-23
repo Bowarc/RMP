@@ -1,11 +1,42 @@
 use shared::{
     command::{Command, PlayerCommand},
-    message::ClientMessage,
+    message::{ClientMessage, ServerMessage},
 };
 
 pub enum SongIdentifier {
     Uuid(uuid::Uuid),
     Title(String),
+}
+
+pub fn get(client: &mut shared::client::Client) -> Vec<shared::song::Song> {
+    client
+        .send(ClientMessage::Command(Command::Player(
+            PlayerCommand::GetQueue,
+        )))
+        .unwrap();
+
+    loop {
+        let Ok((_, message)) = client.recv(std::time::Duration::from_secs(1)) else {
+            panic!("Huh")
+        };
+
+        match message {
+            ServerMessage::PlayerQueue(vol) => return vol,
+            ServerMessage::Error(e) => {
+                panic!("{e}")
+            }
+            ServerMessage::Position(_)
+            | ServerMessage::CurrentlyPlaying { .. }
+            | ServerMessage::PlayerStatePause
+            | ServerMessage::PlayerStatePlay
+            | ServerMessage::PlayerVolume(_)
+            | ServerMessage::AudioDevice(_)
+            | ServerMessage::Ping
+            | ServerMessage::Pong => unreachable!(),
+
+
+        }
+    }
 }
 
 pub fn add(client: &mut shared::client::Client, si: SongIdentifier) {
@@ -16,6 +47,7 @@ pub fn add(client: &mut shared::client::Client, si: SongIdentifier) {
                     PlayerCommand::AddToQueue(uuid),
                 )))
                 .unwrap();
+            debug!("{:?}", client.recv(std::time::Duration::from_secs(1)));
         }
         SongIdentifier::Title(_title) => {
             // Todo: Get the list of locally imported songs,

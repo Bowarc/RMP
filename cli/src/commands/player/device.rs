@@ -21,6 +21,7 @@ pub fn get(client: &mut shared::client::Client) -> String {
                 panic!("{e}")
             }
             ServerMessage::Position(_)
+            | ServerMessage::CurrentlyPlaying { .. }
             | ServerMessage::PlayerStatePause
             | ServerMessage::PlayerStatePlay
             | ServerMessage::PlayerQueue(_)

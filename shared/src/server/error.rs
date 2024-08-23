@@ -15,6 +15,9 @@ pub enum PlayerError {
     #[error("This is a test error and shouldn't be used in any public context")]
     Test,
 
+    #[error("The player is not currently playing")]
+    NotPlaying,
+
     #[error("The current stack is empty")]
     EmptyStack,
 
@@ -32,4 +35,7 @@ pub enum PlayerError {
 
     #[error("{name} player found an error while using it's audio device: {e}")]
     DeviceError { name: String, e: String },
+
+    #[error("{0}")]
+    Custom(String),
 }

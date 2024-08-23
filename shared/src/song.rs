@@ -8,7 +8,7 @@ pub struct Song {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Metadata {
-    name: String,
+    title: String,
     duration: std::time::Duration,
     // author: Option<String>
     // more ?
@@ -46,11 +46,14 @@ impl Song {
     pub fn uuid(&self) -> uuid::Uuid {
         self.uuid
     }
+    pub fn metadata(&self) -> &Metadata{
+        &self.metadata
+    }
 }
 
 impl Metadata {
-    pub fn new(name: String, duration: std::time::Duration) -> Self {
-        Self { name, duration }
+    pub fn new(title: String, duration: std::time::Duration) -> Self {
+        Self { title, duration }
     }
 
     fn load(path: &std::path::PathBuf) -> Option<Self> {
@@ -65,6 +68,12 @@ impl Metadata {
             .ok()?;
 
         from_bytes(&bytes).ok()
+    }
+    pub fn title(&self) -> &String{
+        &self.title
+    }
+    pub fn duration(&self) -> &std::time::Duration{
+        &self.duration
     }
 }
 

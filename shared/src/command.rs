@@ -9,8 +9,11 @@ pub enum PlayerCommand {
     Play,
     Pause,
 
+    GetCurrentlyPlaying,
+
     AddToQueue(uuid::Uuid),
     RemoveFromQueue(uuid::Uuid),
+    GetQueue,
     ClearQueue,
 
     SetVolume(f32),

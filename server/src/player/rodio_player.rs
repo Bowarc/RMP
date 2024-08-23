@@ -65,6 +65,7 @@ impl RodioPlayer {
         })?;
 
         sink.pause(); // Not playing, why not paused ?
+        sink.set_volume(config.volume());
 
         Ok(Self {
             config,
@@ -90,24 +91,24 @@ impl super::Player for RodioPlayer {
             return Err(PlayerError::EmptyStack);
         }
 
-        let song = self.queue.first().unwrap(); // We checked before if the stack was empty
+        if self.queue_pointer.is_none(){
+            self.queue_pointer = Some(0)
+        }
 
-        // let path = self.config.song_path().join(song_id.as_hyphenated().to_string()); // no extension since we don't care about the file format, everything is handled by the decoder
+        // queue pointer has litterally been sent just above, unwrap is fine
+        let qp = self.queue_pointer.as_mut().unwrap();
 
-        // // let data = std::fs::read(path).map_err(|e| PlayerError::FileRead {
-        // //     target: path.to_str().to_owned(),
-        // //     error: e.to_string(),
-        // // })?;
+        // If queue pointer is outside queue, let's bring it back
+        if *qp >= self.queue.len() as u64{
+            *qp = (self.queue.len() -1) as u64;
+        }
 
-        // let file = std::fs::File::open(path.clone()).map_err(|e| PlayerError::FileRead {
-        //     target: path.display().to_string(),
-        //     error: e.to_string(),
-        // })?;
+        let current_song = self.queue.get(*qp as usize).unwrap(); // This should never happend, we checked if the list was long enough just before
 
-        let Some(reader) = song.data(self.config.song_path()) else {
+        let Some(reader) = current_song.data(self.config.song_path()) else {
             return Err(crate::error::PlayerError::FileRead {
-                target: song.uuid().as_hyphenated().to_string(),
-                error: String::from("Could not read the file"),
+                target: current_song.uuid().as_hyphenated().to_string(),
+                error: String::from("Could not read the data file"),
             });
         };
 
@@ -115,7 +116,7 @@ impl super::Player for RodioPlayer {
             name: "Rodio".to_string(),
             error: format!(
                 "Decoder initialisation failed on {} with: {}",
-                song.uuid().as_hyphenated().to_string(),
+                current_song.uuid().as_hyphenated().to_string(),
                 e.to_string()
             ),
         })?;
@@ -147,11 +148,37 @@ impl super::Player for RodioPlayer {
     }
 
     fn remove_queue(&mut self, uuid: uuid::Uuid) -> super::Result<()> {
+        use std::cmp::Ordering;
         let Some(index) = self.queue.iter().position(|item| item.uuid() == uuid) else {
+            // The given uuid hasn't been found in the queue, the user is happy :D
             return Ok(());
         };
 
         self.queue.remove(index);
+
+        if let Some(qp) = &mut self.queue_pointer{
+
+            match (*qp).cmp(&(index as u64)){
+                Ordering::Greater => {
+                    // Since the queue pointer is further away in the queue, removing one will cause a song to be skipped
+                    *qp -= 1
+                },
+                Ordering::Equal => {
+                    // Removing the currently playing song should cause the player to stop
+                    self.sink.clear();
+                    self.sink.pause();
+
+                },
+                Ordering::Less => {
+                    // The queue pointer is before the deleted song in the list, no need to change anything
+                },
+            }
+
+            // If the queue pointer is outside the queue, let's bring it back
+            if *qp >= self.queue.len() as u64{
+                *qp = (self.queue.len() - 1) as u64
+            }
+        }
 
         debug!("{uuid} has been remove from rodio player's queue !");
         Ok(())
@@ -160,6 +187,7 @@ impl super::Player for RodioPlayer {
     fn clear_queue(&mut self) -> super::Result<()> {
         self.queue.clear();
         self.sink.clear();
+        self.queue_pointer = None;
         debug!("Rodio player's queue cleared !");
         Ok(())
     }
@@ -193,8 +221,6 @@ impl super::Player for RodioPlayer {
 
     fn set_device_by_name(&mut self, new_device_name: &str) -> super::Result<()> {
         use rodio::Sink;
-        // Do you really need to create a new sink ? :c
-        // well, let's try to get the most information about the current one, and replace it
 
         let device =
             shared::audio_device_utils::get_device_by_name(new_device_name).map_err(|_| {
@@ -256,12 +282,18 @@ impl super::Player for RodioPlayer {
         Ok(self.sink.get_pos())
     }
 
+    fn currently_playing_index(&self) -> super::Result<u64> {
+        self.queue_pointer.ok_or(crate::error::PlayerError::NotPlaying)
+    }
+
     fn update(&mut self) -> super::Result<()> {
-        // if self.sink.empty() && !self.queue.is_empty() {
-        //     debug!("Sink is empty but queue isn't, setting sink to play mode !");
-        //     let _ = self.play();
-        // }
+        // Autoplay
+        if self.sink.len() == 0 && self.queue_pointer.is_some() {
+            *self.queue_pointer.as_mut().unwrap() += 1;
+            self.play()?;
+        }
 
         Ok(())
     }
+
 }
