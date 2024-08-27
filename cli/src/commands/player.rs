@@ -44,14 +44,7 @@ pub fn now_playing(client: &mut Client) -> (shared::song::Song, u64) {
             ServerMessage::Error(e) => {
                 panic!("{e}")
             }
-            ServerMessage::Position(_)
-            | ServerMessage::PlayerVolume(_)
-            | ServerMessage::PlayerStatePause
-            | ServerMessage::PlayerStatePlay
-            | ServerMessage::PlayerQueue(_)
-            | ServerMessage::AudioDevice(_)
-            | ServerMessage::Ping
-            | ServerMessage::Pong => unreachable!(),
+            _ => unreachable!(),
         }
     }
 }

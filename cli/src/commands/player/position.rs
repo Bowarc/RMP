@@ -23,14 +23,7 @@ pub fn get(client: &mut shared::client::Client) -> Duration {
             ServerMessage::Error(e) => {
                 panic!("{e}")
             }
-            ServerMessage::PlayerVolume(_)
-            | ServerMessage::CurrentlyPlaying { .. }
-            | ServerMessage::PlayerStatePause
-            | ServerMessage::PlayerStatePlay
-            | ServerMessage::PlayerQueue(_)
-            | ServerMessage::AudioDevice(_)
-            | ServerMessage::Ping
-            | ServerMessage::Pong => unreachable!(),
+            _ => unreachable!(),
         }
     }
 }

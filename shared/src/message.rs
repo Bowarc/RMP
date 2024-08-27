@@ -1,9 +1,8 @@
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ClientMessage {
-
-
     Ping,
     Pong,
+    Exit,
 
     Command(crate::command::Command),
 }
@@ -12,6 +11,7 @@ pub enum ClientMessage {
 pub enum ServerMessage {
     Ping,
     Pong,
+    Exit,
 
     // player
     PlayerStatePause,
@@ -37,6 +37,9 @@ pub enum ServerMessage {
 }
 
 impl networking::Message for ClientMessage {
+    fn is_exit(&self) -> bool{
+        matches!(self, Self::Exit)
+    }
     fn is_ping(&self) -> bool {
         matches!(self, Self::Ping)
     }
@@ -45,6 +48,9 @@ impl networking::Message for ClientMessage {
         matches!(self, Self::Pong)
     }
 
+    fn default_exit() -> Self{
+        Self::Exit
+    }
     fn default_ping() -> Self {
         Self::Ping
     }
@@ -55,6 +61,9 @@ impl networking::Message for ClientMessage {
 }
 
 impl networking::Message for ServerMessage {
+    fn is_exit(&self) -> bool{
+        matches!(self, Self::Exit)
+    }
     fn is_ping(&self) -> bool {
         matches!(self, Self::Ping)
     }
@@ -63,6 +72,9 @@ impl networking::Message for ServerMessage {
         matches!(self, Self::Pong)
     }
 
+    fn default_exit() -> Self{
+        Self::Exit
+    }
     fn default_ping() -> Self {
         Self::Ping
     }

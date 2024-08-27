@@ -4,10 +4,13 @@ pub enum Error {
     Test,
 
     #[error(transparent)]
-    PlayerError(#[from] PlayerError),
+    Player(#[from] PlayerError),
 
     #[error("{0}")]
-    SocketError(String),
+    Socket(String),
+
+    #[error(transparent)]
+    Downloader(#[from] DownloaderError)
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
@@ -38,4 +41,11 @@ pub enum PlayerError {
 
     #[error("{0}")]
     Custom(String),
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+pub enum DownloaderError{
+    #[error("This is a test error and shouldn't be used in any public context")]
+    Test,
+
 }

@@ -121,4 +121,7 @@ fn main() {
 
     // shared::song::convert_local("D:/dev/rust/projects/rmp/songs/", "D:/dev/rust/projects/rmp/songs/")
 
+    client.shutdown();
+
+
 }

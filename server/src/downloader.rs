@@ -1,114 +1,44 @@
+mod config;
+mod handle;
+mod message;
+
+pub use config::DownloadConfig;
+use handle::DownloadHandle;
+use message::DownloadMessage;
+
 const CHUNK_SIZE_B: u64 = 1024 * 1024; // 1mb
 
-#[derive(Debug, PartialEq)]
-pub enum DownloadMessage {
-    PrcentageUpdate(f32),
-    ChunkUpdate(Vec<u8>),
-    Error(String), // every error means that the downloader has exited
-    Done,
+#[derive(Default)]
+pub struct DownloadManager /* hate naming things like that but eh */ {
+    queue: std::collections::VecDeque<DownloadConfig>,
+
+    current: Option<DownloadHandle>,
 }
 
-pub struct DownloadHandle {
-    channel: threading::Channel<DownloadMessage, ()>,
-    thread_handle: std::thread::JoinHandle<()>,
-
-    latest_percentage: f32,
-    buffer: Vec<u8>,
-
-    uuid: uuid::Uuid,
-    file: std::fs::File,
-    metadata: std::sync::Arc<std::sync::Mutex<Option<shared::song::Metadata>>>,
-
-    running: bool,
-    failed: bool,
-}
-
-#[derive(Clone)]
-pub struct DownloadConfig {
-    pub url: String,
-    // ?
-}
-
-impl DownloadHandle {
-    pub fn new(
-        channel: threading::Channel<DownloadMessage, ()>,
-        metadata: std::sync::Arc<std::sync::Mutex<Option<shared::song::Metadata>>>,
-        thread_handle: std::thread::JoinHandle<()>,
-    ) -> Self {
-        let uuid = uuid::Uuid::new_v4();
-
-        let file = std::fs::File::create(format!("D:/Dev/Rust/projects/rmp/songs/{uuid}")).unwrap();
-        Self {
-            channel,
-            thread_handle,
-
-            latest_percentage: 0.,
-            buffer: Vec::new(),
-
-            uuid,
-            file,
-            metadata,
-
-            running: true,
-            failed: false,
-        }
+impl DownloadManager {
+    pub fn push(&mut self, cfg: DownloadConfig) -> () {
+        self.queue.push_back(cfg)
     }
-    pub fn update(&mut self) {
-        match self.channel.try_recv() {
-            Ok(message) => {
-                // debug!("Received a message from downloader: {message:?}");
-                match message {
-                    DownloadMessage::PrcentageUpdate(val) => self.latest_percentage = val,
-                    DownloadMessage::ChunkUpdate(chunk) => {
-                        // debug!("Received {}bytes", chunk.len());
-                        self.buffer.extend_from_slice(&chunk)
-                    }
-                    DownloadMessage::Error(e) => {
-                        error!("Downloader found an error while, well, downloading,: {e}");
-                        warn!("The downloader has failed and exited");
 
-                        self.running = false;
-                        self.failed = true;
-                    }
-                    DownloadMessage::Done => {
-                        self.running = false;
-                        self.failed = false;
-                        debug!("The downloader has finished it's job and exited")
-                    }
-                }
+    pub fn update(&mut self) -> Result<(), shared::server::error::DownloaderError>{
+        if let Some(current) = &mut self.current{
+            current.update();
+            if !current.running(){
+                self.current = None;
             }
-            Err(e) if e != std::sync::mpsc::TryRecvError::Empty => {
-                error!("Couldn't get a message from the channel due to: {e}")
-            }
-            Err(_) => {}
-        };
-
-        if !self.buffer.is_empty() {
-            use std::io::Write as _;
-            // ugly for now, we'll need the song dir from config later
-
-            self.file.write_all(&mut self.buffer).unwrap();
-            self.buffer.clear();
+        }
+        // could use else if but i don't like implicit `self.current.is_none()`
+        if self.current.is_none() && !self.queue.is_empty() {
+            let new = self.queue.pop_front().unwrap();
+            debug!("Current got free'd, creating new one with url: {}", new.url);
+            self.current = Some(download(new));
         }
 
-        if !self.running && !self.failed {
-            // TODO: write metadata file
-            // debug!("now write metadata !");
-            let file = std::fs::File::create(format!(
-                "D:/Dev/Rust/projects/rmp/songs/{}.metadata",
-                self.uuid.as_hyphenated()
-            ))
-            .unwrap();
-            ron::ser::to_writer(file, &self.metadata.lock().unwrap().clone().unwrap()).unwrap();
-        }
+        Ok(())
     }
 
-    pub fn download_percentage(&self) -> f32 {
-        self.latest_percentage
-    }
-
-    pub fn running(&self) -> bool {
-        self.running
+    pub fn current(&self) -> Option<&DownloadHandle>{
+        self.current.as_ref()
     }
 }
 
@@ -151,7 +81,6 @@ pub fn download(config: DownloadConfig) -> DownloadHandle {
                     return;
                 };
 
-
                 // This works but
                 // It creates a lot more samples,
                 // Cannot use static array types as samples don't have known size
@@ -179,7 +108,10 @@ pub fn download(config: DownloadConfig) -> DownloadHandle {
                 };
                 let info = video.get_basic_info().await.unwrap().video_details;
 
-                debug!("The video is {} seconds long",info.length_seconds.parse::<u64>().unwrap());
+                debug!(
+                    "The video is {} seconds long",
+                    info.length_seconds.parse::<u64>().unwrap()
+                );
 
                 *cloned.lock().unwrap() = Some(shared::song::Metadata::new(
                     info.title,
@@ -188,7 +120,7 @@ pub fn download(config: DownloadConfig) -> DownloadHandle {
 
                 debug!("Starting download");
 
-                let total_download_size=  stream.content_length();
+                let total_download_size = stream.content_length();
                 let mut downloaded = 0;
                 loop {
                     match stream.chunk().await {
@@ -199,13 +131,12 @@ pub fn download(config: DownloadConfig) -> DownloadHandle {
                             };
                             downloaded += bytes.len();
 
-                            channel2.send(
-                                DownloadMessage::PrcentageUpdate(
+                            channel2
+                                .send(DownloadMessage::PrcentageUpdate(
                                     // TODO: Fix multiplier here, find conversion rate for mp3 from m4a
-                                    (downloaded as f32 / (total_download_size as f32)) * 100.
-                                )
-                            ).unwrap();
-
+                                    (downloaded as f32 / (total_download_size as f32)) * 100.,
+                                ))
+                                .unwrap();
 
                             // Do something with the chunk
 

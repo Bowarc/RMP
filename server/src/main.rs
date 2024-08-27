@@ -41,14 +41,15 @@ fn main() {
     let mut interval =
         spin_sleep_util::interval(std::time::Duration::from_secs_f32(1. / TARGET_TPS));
 
-    //
+    let mut socket_opt: Option<
+        networking::Socket<shared::message::ClientMessage, shared::message::ServerMessage>,
+    > = None;
 
     let mut music_player: Box<dyn player::Player> =
         Box::new(player::PlayerImpl::new(Default::default()).unwrap());
 
-    let mut socket_opt: Option<
-        networking::proxy::ProxyController<shared::message::ClientMessage, shared::message::ServerMessage>,
-    > = None;
+    let mut downloader = downloader::DownloadManager::default();
+
 
     let listener = std::net::TcpListener::bind(shared::DEFAULT_ADDRESS).unwrap();
     listener.set_nonblocking(true).unwrap();
@@ -59,10 +60,7 @@ fn main() {
         if socket_opt.is_none() {
             if let Ok((stream, addr)) = listener.accept() {
                 info!("New connection from {addr}");
-                socket_opt = Some(networking::Proxy::start_new(
-                    config::default_proxy_config(),
-                    Some(stream),
-                ))
+                socket_opt = Some(networking::Socket::new(stream));
             }
         }
         if let Err(e) = music_player.update() {
@@ -70,13 +68,25 @@ fn main() {
             if let Some(socket) = &mut socket_opt {
                 socket
                     .send(shared::message::ServerMessage::Error(
-                        shared::server::error::Error::PlayerError(e),
+                        shared::server::error::Error::Player(e),
                     ))
                     .unwrap();
             }
         };
 
-        server::recv_commands(&mut socket_opt, &mut music_player);
+        if let Err(e) = downloader.update(){
+            error!("An error occured while updating the downloader: {e}");
+            if let Some(socket) = &mut socket_opt {
+                socket
+                    .send(shared::message::ServerMessage::Error(
+                        shared::server::error::Error::Downloader(e),
+                    ))
+                    .unwrap();
+            }
+        }
+
+        server::recv_commands(&mut socket_opt, &mut music_player, &mut downloader);
+
 
         interval.tick();
     }

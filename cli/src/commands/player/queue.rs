@@ -25,14 +25,7 @@ pub fn get(client: &mut shared::client::Client) -> Vec<shared::song::Song> {
             ServerMessage::Error(e) => {
                 panic!("{e}")
             }
-            ServerMessage::Position(_)
-            | ServerMessage::CurrentlyPlaying { .. }
-            | ServerMessage::PlayerStatePause
-            | ServerMessage::PlayerStatePlay
-            | ServerMessage::PlayerVolume(_)
-            | ServerMessage::AudioDevice(_)
-            | ServerMessage::Ping
-            | ServerMessage::Pong => unreachable!(),
+            _ => unreachable!(),
 
 
         }

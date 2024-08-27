@@ -20,14 +20,7 @@ pub fn get(client: &mut shared::client::Client) -> f32 {
             ServerMessage::Error(e) => {
                 panic!("{e}")
             }
-            ServerMessage::Position(_)
-            | ServerMessage::CurrentlyPlaying { .. }
-            | ServerMessage::PlayerStatePause
-            | ServerMessage::PlayerStatePlay
-            | ServerMessage::PlayerQueue(_)
-            | ServerMessage::AudioDevice(_)
-            | ServerMessage::Ping
-            | ServerMessage::Pong => unreachable!(),
+            _ => unreachable!(),
         }
     }
 }
