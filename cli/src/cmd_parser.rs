@@ -40,6 +40,7 @@ pub fn cmd() -> clap::Command {
                 	Command::new("clear").alias("c")
             		.about("Clear RMP's song queue")
                 )
+                .arg_required_else_help(true)
 	        )
             .subcommand(
             Command::new("volume")
@@ -77,6 +78,7 @@ pub fn cmd() -> clap::Command {
                         .default_value("0.5")
                     )
                 )
+                .arg_required_else_help(true)
             )
             .subcommand(
             Command::new("position")
@@ -93,7 +95,6 @@ pub fn cmd() -> clap::Command {
                         arg!(<VALUE> "The amount of seconds")
                         .value_parser(clap::value_parser!(u64))
                     )
-                    .arg_required_else_help(true)
                 )
                 .subcommand(
                     Command::new("forward")
@@ -115,6 +116,7 @@ pub fn cmd() -> clap::Command {
                         .default_value("15")
                     )
                 )
+                .arg_required_else_help(true)
             )
             .subcommand(
             Command::new("device")
@@ -131,14 +133,18 @@ pub fn cmd() -> clap::Command {
                     .arg(arg!(<NAME> "Name of the device to set"))
                     .arg_required_else_help(true)
                 )
+                .arg_required_else_help(true)
             )
+            .arg_required_else_help(true)
         )
         .subcommand(
             Command::new("downloader").alias("dl")
             .subcommand(
                 Command::new("start")
                     .arg(arg!(<URL> "The url used for the download, must be youtube.com/"))
+                    .arg_required_else_help(true)
                     // .value_parser(|v| )
                 )
+            .arg_required_else_help(true)
         )
 }
