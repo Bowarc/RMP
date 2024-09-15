@@ -22,8 +22,10 @@ impl DownloadManager {
 
     pub fn update(&mut self) -> Result<(), shared::server::error::DownloaderError>{
         if let Some(current) = &mut self.current{
+            debug!("Updating current ({:?})", current.state());
             current.update();
-            if !current.running(){
+            if current.state() == handle::State::Done{
+                debug!("The current download has finished");
                 self.current = None;
             }
         }
