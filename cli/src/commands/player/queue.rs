@@ -15,20 +15,20 @@ pub fn get(client: &mut shared::client::Client) -> Vec<shared::song::Song> {
         )))
         .unwrap();
 
-    loop {
-        let Ok((_, message)) = client.recv(std::time::Duration::from_secs(1)) else {
-            panic!("Huh")
-        };
-
-        match message {
-            ServerMessage::PlayerQueue(vol) => return vol,
-            ServerMessage::Error(e) => {
-                panic!("{e}")
-            }
-            _ => unreachable!(),
-
-
+    
+    let message = match client.recv(std::time::Duration::from_secs(1)) {
+        Ok((_header, message)) => message,
+        Err(e) => {
+            panic!("{e}");
         }
+    };
+
+    match message {
+        ServerMessage::PlayerQueue(queue) => queue,
+        ServerMessage::Error(e) => {
+            panic!("{e}")
+        }
+        _ => unreachable!(),
     }
 }
 

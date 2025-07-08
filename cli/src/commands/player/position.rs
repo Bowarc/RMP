@@ -13,18 +13,20 @@ pub fn get(client: &mut shared::client::Client) -> Duration {
         )))
         .unwrap();
 
-    loop {
-        let Ok((_, message)) = client.recv(Duration::from_secs(1)) else {
-            panic!("Huh")
-        };
-
-        match message {
-            ServerMessage::Position(duration) => return duration,
-            ServerMessage::Error(e) => {
-                panic!("{e}")
-            }
-            _ => unreachable!(),
+    
+    let message = match client.recv(std::time::Duration::from_secs(1)) {
+        Ok((_header, message)) => message,
+        Err(e) => {
+            panic!("{e}");
         }
+    };
+
+    match message {
+        ServerMessage::Position(p) => p,
+        ServerMessage::Error(e) => {
+            panic!("{e}")
+        }
+        _ => unreachable!(),
     }
 }
 
