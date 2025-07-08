@@ -30,7 +30,7 @@ pub enum PlayerCommand {
 
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub enum DownloaderCommand {
-    StartDownload(String),
+    QueueDownload(String),
     StopCurrentDownload,
     FetchCurrent,
     FetchQueue,

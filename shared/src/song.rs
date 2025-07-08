@@ -18,7 +18,7 @@ impl Song {
     pub fn new(uuid: uuid::Uuid, metadata: Metadata) -> Self {
         Self { uuid, metadata }
     }
-    pub fn load(uuid: uuid::Uuid, song_folder_path: &std::path::PathBuf) -> Option<Self> {
+    pub fn load(uuid: uuid::Uuid, song_folder_path: &std::path::Path) -> Option<Self> {
         let path = song_folder_path
             .canonicalize()
             .ok()?
@@ -31,7 +31,7 @@ impl Song {
 
     pub fn data(
         &self,
-        song_folder_path: &std::path::PathBuf,
+        song_folder_path: &std::path::Path,
     ) -> Option<std::io::BufReader<std::fs::File>> {
         let path = song_folder_path
             .canonicalize()
@@ -46,7 +46,7 @@ impl Song {
     pub fn uuid(&self) -> uuid::Uuid {
         self.uuid
     }
-    pub fn metadata(&self) -> &Metadata{
+    pub fn metadata(&self) -> &Metadata {
         &self.metadata
     }
 }
@@ -56,7 +56,7 @@ impl Metadata {
         Self { title, duration }
     }
 
-    fn load(path: &std::path::PathBuf) -> Option<Self> {
+    fn load(path: &std::path::Path) -> Option<Self> {
         use ron::de::from_bytes;
         use std::io::Read as _;
 
@@ -69,16 +69,14 @@ impl Metadata {
 
         from_bytes(&bytes).ok()
     }
-    pub fn title(&self) -> &String{
+    pub fn title(&self) -> &String {
         &self.title
     }
-    pub fn duration(&self) -> &std::time::Duration{
+    pub fn duration(&self) -> &std::time::Duration {
         &self.duration
     }
 }
 
-
-///
 ///
 /// Tries to decode the local_file_path file, supported formats are:
 ///     MP3, WAV, flac and vorbis (I don't really plan on using the 2 lasts)
@@ -86,7 +84,6 @@ impl Metadata {
 /// Creates {uuid} and {uuid}.metadata files in local_storage_path which should be something like ./songs
 ///
 ///     If it fails, it tries to cleanup
-///
 ///
 pub fn convert_local(
     local_file_path: std::path::PathBuf,
@@ -98,18 +95,17 @@ pub fn convert_local(
 
     let uuid = uuid::Uuid::new_v4();
 
-    static DEFAULT_NAME: &'static str = "DEFAULT_IMPORTED_FILE_NAME";
+    static DEFAULT_NAME: &str = "DEFAULT_IMPORTED_FILE_NAME";
 
     let local_file_name = local_file_path
         .file_name()
-        .map(|s| s.to_str())
-        .flatten()
+        .and_then(|s| s.to_str())
         .map(|s| {
             if !s.contains(".") {
                 return s;
             }
 
-            if s.replace(".", "").len() ==0{
+            if s.replace(".", "").is_empty() {
                 return DEFAULT_NAME;
             };
 
@@ -120,16 +116,12 @@ pub fn convert_local(
         .unwrap_or(DEFAULT_NAME)
         .to_string();
 
-    let meta_file_path = format!(
-        "{p}/{uuid}.metadata",
-        p = local_storage_path.display()
-    );
-    let data_file_path =format!("{p}/{uuid}", p = local_storage_path.display());
+    let meta_file_path = format!("{p}/{uuid}.metadata", p = local_storage_path.display());
+    let data_file_path = format!("{p}/{uuid}", p = local_storage_path.display());
 
     Decoder::new(std::fs::File::open(&local_file_path).ok()?)
-        .map_err(|e| {
-            error!("Invalid file format");
-            e
+        .inspect_err(|e| {
+            error!("Invalid file format: {e}");
         })
         .ok()?;
 
@@ -140,11 +132,11 @@ pub fn convert_local(
 
     // Write metadata for imported song
     let metadata_file = File::create_new(&meta_file_path)
-    .map_err(|e| {
-        error!("Failed to create metadata file with: {e}");
-        e
-    })
-    .ok()?;
+        .map_err(|e| {
+            error!("Failed to create metadata file with: {e}");
+            e
+        })
+        .ok()?;
 
     let metadata = Metadata::new(
         local_file_name.clone(),
@@ -186,5 +178,3 @@ pub fn convert_local(
 
     Some(Song::new(uuid, metadata))
 }
-
-

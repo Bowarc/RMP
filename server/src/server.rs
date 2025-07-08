@@ -25,6 +25,7 @@ pub fn recv_commands(
         let (header, cm) = match socket.try_recv() {
             Ok(message) => message,
             Err(e) => {
+                warn!("Client disconnected");
                 *socket_opt = None;
                 break;
             }
@@ -149,7 +150,7 @@ pub fn handle_downloader_command(
     use shared::command::DownloaderCommand;
 
     match command {
-        DownloaderCommand::StartDownload(url) => {
+        DownloaderCommand::QueueDownload(url) => {
             // debug!("Received dl request");
             // let config = crate::downloader::DownloadConfig { url };
 

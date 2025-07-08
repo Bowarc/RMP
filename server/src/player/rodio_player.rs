@@ -29,7 +29,7 @@ impl RodioPlayer {
             .collect::<String>();
 
         debug!(
-            "Creating a rodio player\nSong path: {}\nDevice list:[\n{devices}]",
+            "Creating a rodio player\nSong path: {}\nDevice list: [\n{devices}]",
             config.song_path().canonicalize().unwrap().display()
         );
 
@@ -91,7 +91,7 @@ impl super::Player for RodioPlayer {
             return Err(PlayerError::EmptyStack);
         }
 
-        if self.queue_pointer.is_none(){
+        if self.queue_pointer.is_none() {
             self.queue_pointer = Some(0)
         }
 
@@ -99,8 +99,10 @@ impl super::Player for RodioPlayer {
         let qp = self.queue_pointer.as_mut().unwrap();
 
         // If queue pointer is outside queue, let's bring it back
-        if *qp >= self.queue.len() as u64{
-            *qp = (self.queue.len() -1) as u64;
+        // No, return an error !
+        if *qp >= self.queue.len() as u64 {
+            // *qp = (self.queue.len() -1) as u64;
+            return Err(PlayerError::Custom("End of queue".to_string()));
         }
 
         let current_song = self.queue.get(*qp as usize).unwrap(); // This should never happend, we checked if the list was long enough just before
@@ -123,6 +125,7 @@ impl super::Player for RodioPlayer {
 
         self.sink.append(decoder);
         self.sink.play();
+
         debug!("Rodio player set to play !");
         Ok(())
     }
@@ -156,26 +159,24 @@ impl super::Player for RodioPlayer {
 
         self.queue.remove(index);
 
-        if let Some(qp) = &mut self.queue_pointer{
-
-            match (*qp).cmp(&(index as u64)){
+        if let Some(qp) = &mut self.queue_pointer {
+            match (*qp).cmp(&(index as u64)) {
                 Ordering::Greater => {
                     // Since the queue pointer is further away in the queue, removing one will cause a song to be skipped
                     *qp -= 1
-                },
+                }
                 Ordering::Equal => {
                     // Removing the currently playing song should cause the player to stop
                     self.sink.clear();
                     self.sink.pause();
-
-                },
+                }
                 Ordering::Less => {
                     // The queue pointer is before the deleted song in the list, no need to change anything
-                },
+                }
             }
 
             // If the queue pointer is outside the queue, let's bring it back
-            if *qp >= self.queue.len() as u64{
+            if *qp >= self.queue.len() as u64 {
                 *qp = (self.queue.len() - 1) as u64
             }
         }
@@ -210,13 +211,12 @@ impl super::Player for RodioPlayer {
     }
 
     fn audio_device(&self) -> super::Result<String> {
-        self.current_device.name().map_err(
-            |e|
-            crate::error::PlayerError::DeviceError{
+        self.current_device
+            .name()
+            .map_err(|e| crate::error::PlayerError::DeviceError {
                 name: "Rodio".to_string(),
-                e: format!("Could not get the name for the current device due to: {e}")
-            }
-        )
+                e: format!("Could not get the name for the current device due to: {e}"),
+            })
     }
 
     fn set_device_by_name(&mut self, new_device_name: &str) -> super::Result<()> {
@@ -226,9 +226,7 @@ impl super::Player for RodioPlayer {
             shared::audio_device_utils::get_device_by_name(new_device_name).map_err(|_| {
                 crate::error::PlayerError::Initialisation {
                     name: "Rodio".to_string(),
-                    error: format!(
-                        "Could not get the requested device ({new_device_name})"
-                    ),
+                    error: format!("Could not get the requested device ({new_device_name})"),
                 }
             })?;
 
@@ -283,17 +281,19 @@ impl super::Player for RodioPlayer {
     }
 
     fn currently_playing_index(&self) -> super::Result<u64> {
-        self.queue_pointer.ok_or(crate::error::PlayerError::NotPlaying)
+        self.queue_pointer
+            .ok_or(crate::error::PlayerError::NotPlaying)
     }
 
     fn update(&mut self) -> super::Result<()> {
         // Autoplay
-        if self.sink.len() == 0 && self.queue_pointer.is_some() {
+
+        // should be fine as the order of operation should optimize the unwrap condition out if the 2nd cond is not met
+        if self.sink.len() == 0 && self.queue_pointer.is_some() && self.queue_pointer.unwrap() as usize != self.queue.len() - 1 {
             *self.queue_pointer.as_mut().unwrap() += 1;
-            self.play()?;
+            self.play()?
         }
 
         Ok(())
     }
-
 }
