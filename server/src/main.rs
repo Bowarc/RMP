@@ -1,6 +1,12 @@
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate lazy_static;
+
+#[macro_use]
+extern crate atomic_enum;
+
 mod config;
 mod downloader;
 mod player;
@@ -12,16 +18,17 @@ use shared::server::error;
 const TARGET_TPS: f32 = 10.;
 
 fn main() {
-    let cfg = logger::LoggerConfig::default()
-        .add_filter("symphonia_core", log::LevelFilter::Off)
-        .add_filter("symphonia_bundle_mp3", log::LevelFilter::Off)
-        .add_filter("selectors", log::LevelFilter::Off)
-        .add_filter("reqwest", log::LevelFilter::Off)
-
-        .add_filter("html5ever", log::LevelFilter::Off)
-
-        .add_filter("networking", log::LevelFilter::Debug);
-    logger::init(cfg, Some("./log/server.log"));
+    logger::init(
+        logger::Config::default()
+            .output(logger::Output::Stdout)
+            .filter("symphonia_core", log::LevelFilter::Off)
+            .filter("symphonia_bundle_mp3", log::LevelFilter::Off)
+            .filter("selectors", log::LevelFilter::Off)
+            .filter("reqwest", log::LevelFilter::Off)
+            .filter("html5ever", log::LevelFilter::Off)
+            .filter("networking", log::LevelFilter::Debug)
+            .colored(true),
+    );
 
     let stopwatch = time::Stopwatch::start_new();
 
@@ -50,7 +57,6 @@ fn main() {
 
     let mut downloader = downloader::DownloadManager::default();
 
-
     let listener = std::net::TcpListener::bind(shared::DEFAULT_ADDRESS).unwrap();
     listener.set_nonblocking(true).unwrap();
 
@@ -74,7 +80,7 @@ fn main() {
             }
         };
 
-        if let Err(e) = downloader.update(){
+        if let Err(e) = downloader.update() {
             error!("An error occured while updating the downloader: {e}");
             if let Some(socket) = &mut socket_opt {
                 socket
@@ -86,7 +92,6 @@ fn main() {
         }
 
         server::recv_commands(&mut socket_opt, &mut music_player, &mut downloader);
-
 
         interval.tick();
     }
