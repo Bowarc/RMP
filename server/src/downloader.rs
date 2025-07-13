@@ -1,13 +1,10 @@
 mod backend;
 mod config;
 mod handle;
-mod message;
 
 pub use config::DownloadConfig;
 use handle::DownloadHandle;
-use message::DownloadMessage;
 
-// TODO: Implement Ytdlp https://github.com/BKSalman/ytdlp-gui/blob/main/src/command.rs
 // Multiple download backend ?
 pub struct DownloadManager /* hate naming things like that but eh */ {
     queue: std::collections::VecDeque<DownloadConfig>,
@@ -24,7 +21,7 @@ impl DownloadManager {
 
     pub fn update(&mut self) -> Result<(), shared::server::error::DownloaderError> {
         if let Some(current) = &mut self.current {
-            debug!("Updating current ({:?})", current.state());
+            // debug!("Updating current ({:?}) ({}%)", current.state(), current.download_percentage());
             match current.state() {
                 stp::FutureState::Done => {
                     debug!("The current download has finished");
@@ -60,7 +57,7 @@ impl Default for DownloadManager {
 
         Self {
             queue: VecDeque::new(),
-            threadpool: ThreadPool::new(3),
+            threadpool: ThreadPool::new(1), // Im not sure having threads up 24/7 is a good usage of resources lmao
             current: None,
         }
     }
