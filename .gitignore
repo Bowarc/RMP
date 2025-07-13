@@ -1,5 +1,5 @@
 /target
-/log/*
-/songs/*
-/temp/*
+/log
+/songs
+/temp
 /user_folder
