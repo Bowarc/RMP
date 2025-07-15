@@ -9,27 +9,7 @@ pub enum SongIdentifier {
 }
 
 pub fn get(client: &mut shared::client::Client) -> Vec<shared::song::Song> {
-    client
-        .send(ClientMessage::Command(Command::Player(
-            PlayerCommand::GetQueue,
-        )))
-        .unwrap();
-
-    loop {
-        let Ok((_, message)) = client.recv(std::time::Duration::from_secs(1)) else {
-            panic!("Huh")
-        };
-
-        match message {
-            ServerMessage::PlayerQueue(vol) => return vol,
-            ServerMessage::Error(e) => {
-                panic!("{e}")
-            }
-            _ => unreachable!(),
-
-
-        }
-    }
+    crate::send_and_wait!(client, Command::Player(PlayerCommand::GetQueue), Vec<shared::song::Song>, ServerMessage::PlayerQueue(queue) => queue)
 }
 
 pub fn add(client: &mut shared::client::Client, si: SongIdentifier) {

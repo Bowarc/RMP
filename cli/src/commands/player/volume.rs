@@ -4,25 +4,9 @@ use shared::{
 };
 
 pub fn get(client: &mut shared::client::Client) -> f32 {
-    client
-        .send(ClientMessage::Command(Command::Player(
+    crate::send_and_wait!(client, Command::Player(
             PlayerCommand::GetVolume,
-        )))
-        .unwrap();
-
-    loop {
-        let Ok((_, message)) = client.recv(std::time::Duration::from_secs(1)) else {
-            panic!("Huh")
-        };
-
-        match message {
-            ServerMessage::PlayerVolume(vol) => return vol,
-            ServerMessage::Error(e) => {
-                panic!("{e}")
-            }
-            _ => unreachable!(),
-        }
-    }
+        ), f32, ServerMessage::PlayerVolume(vol) => vol)
 }
 
 pub fn set(client: &mut shared::client::Client, amnt: f32) {

@@ -7,25 +7,7 @@ use {
 };
 
 pub fn get(client: &mut shared::client::Client) -> Duration {
-    client
-        .send(ClientMessage::Command(Command::Player(
-            PlayerCommand::GetPosition,
-        )))
-        .unwrap();
-
-    loop {
-        let Ok((_, message)) = client.recv(Duration::from_secs(1)) else {
-            panic!("Huh")
-        };
-
-        match message {
-            ServerMessage::Position(duration) => return duration,
-            ServerMessage::Error(e) => {
-                panic!("{e}")
-            }
-            _ => unreachable!(),
-        }
-    }
+    crate::send_and_wait!(client, Command::Player(PlayerCommand::GetPosition), std::time::Duration, ServerMessage::Position(duration) => duration)
 }
 
 pub fn set(client: &mut shared::client::Client, value: Duration) {

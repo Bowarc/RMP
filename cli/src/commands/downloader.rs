@@ -1,5 +1,3 @@
-
-
 pub fn download(client: &mut shared::client::Client, url: String){
     use {
         shared::{
@@ -10,7 +8,7 @@ pub fn download(client: &mut shared::client::Client, url: String){
 
     client.send(
         ClientMessage::Command(
-            Command::Downloader(DownloaderCommand::StartDownload(url))
+            Command::Downloader(DownloaderCommand::QueueDownload(url))
         )
     ).unwrap();
 
