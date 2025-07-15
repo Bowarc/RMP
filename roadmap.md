@@ -1,4 +1,4 @@
-- [ ] Server
+- [ ] Server  
     - [ ] Music player
         - [x] Load a song
         - [x] Play queued song
@@ -6,28 +6,49 @@
         - [x] swap output device (even during playing)
         - [x] Seek
         - [x] Able to send song queue
-        - [x]
         - [ ] Error handling
-    - [ ] Playlist manager (?)
     - [ ] Downloader
-        - [ ] Queue a download request
+        - [x] Queue a download request
         - [x] Execute a download request
         - [x] mp3 output
-        - [x] Get song duration and title
+        - [ ] Collect and create metadata
         - [ ] Cleanly stop a download request
+        - [ ] Clear download queue
+        - [ ] Get info about current download
+        - [ ] Get info about download queue
     - [ ] Local song converter
-        - [x] Feature
+        - [x] Convert a local song to an usable format for rmp
         - [ ] Strong error handling
-
-- [ ] GUI
-    - [ ] Basic control / comunication stuff
-    ?
-
-- [ ] TUI
-    - [x] Basic control / comunication stuff
-    - [x] Player argument / command parsing & execution
-    - [ ] (WIP) Downloader control
+    - [ ] Playlist manager (?)
 
 - [ ] CLI
     - [x] Basic control / comunication stuff
+    - [ ] Commands
+        - [x] Player
+            - [x] Play/Pause
+            - [x] Get currently playing song
+            - [x] Push music to queue
+            - [x] Get music queue
+            - [x] Clear music queue
+            - [x] Get/Set volume
+            - [x] Get/Set current song's seek status
+            - [x] Get/Set Audio device
+        - [ ] Downloader
+            - [x] Add a download to queue
+            - [ ] Stop current download
+            - [ ] Get current download status
+            - [ ] Get download queue
+        - [ ] ? Playlist manager 
+- [ ] TUI
+    - [ ] Basic control / comunication stuff
+    - [ ] Interface
+        - [ ] Player
+        - [ ] Downloader
+        - [ ] ? Playlist manager
 
+- [ ] GUI
+    - [ ] Basic control / comunication stuff
+    - [ ] Interface
+        - [ ] Player
+        - [ ] Downloader
+        - [ ] ? Playlist manager
