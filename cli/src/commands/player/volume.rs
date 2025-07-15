@@ -10,21 +10,19 @@ pub fn get(client: &mut shared::client::Client) -> f32 {
         )))
         .unwrap();
 
-    let message = match client.recv(std::time::Duration::from_secs(1)) {
-        Ok((_header, message)) => message,
-        Err(e) => {
-            panic!("{e}");
-        }
-    };
+    loop {
+        let Ok((_, message)) = client.recv(std::time::Duration::from_secs(1)) else {
+            panic!("Huh")
+        };
 
-    match message {
-        ServerMessage::PlayerVolume(vol) => vol,
-        ServerMessage::Error(e) => {
-            panic!("{e}")
+        match message {
+            ServerMessage::PlayerVolume(vol) => return vol,
+            ServerMessage::Error(e) => {
+                panic!("{e}")
+            }
+            _ => unreachable!(),
         }
-        _ => unreachable!(),
     }
-    
 }
 
 pub fn set(client: &mut shared::client::Client, amnt: f32) {

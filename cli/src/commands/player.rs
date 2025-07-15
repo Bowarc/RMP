@@ -34,18 +34,17 @@ pub fn now_playing(client: &mut Client) -> (shared::song::Song, u64) {
         )))
         .unwrap();
 
-    let message = match client.recv(std::time::Duration::from_secs(1)) {
-        Ok((_header, message)) => message,
-        Err(e) => {
-            panic!("{e}");
-        }
-    };
+    loop {
+        let Ok((_, message)) = client.recv(std::time::Duration::from_secs(1)) else {
+            panic!("Huh")
+        };
 
-    match message {
-        ServerMessage::CurrentlyPlaying { song, index } => (song, index),
-        ServerMessage::Error(e) => {
-            panic!("{e}")
+        match message {
+            ServerMessage::CurrentlyPlaying { song, index } => return (song, index),
+            ServerMessage::Error(e) => {
+                panic!("{e}")
+            }
+            _ => unreachable!(),
         }
-        _ => unreachable!(),
     }
 }

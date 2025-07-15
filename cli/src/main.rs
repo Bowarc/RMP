@@ -5,11 +5,11 @@ mod commands;
 extern crate log; // trace, debug, info, warn, error
 
 fn main() {
-    // let cfg = logger::LoggerConfig::default()
-    //     .add_filter("symphonia_core", log::LevelFilter::Off)
-    //     .add_filter("symphonia_bundle_mp3", log::LevelFilter::Off)
-    //     .add_filter("networking", log::LevelFilter::Debug);
-    // logger::init(cfg, Some("./log/server.log"));
+    let cfg = logger::LoggerConfig::default()
+        .add_filter("symphonia_core", log::LevelFilter::Off)
+        .add_filter("symphonia_bundle_mp3", log::LevelFilter::Off)
+        .add_filter("networking", log::LevelFilter::Debug);
+    logger::init(cfg, Some("./log/server.log"));
 
     let mut client = shared::client::Client::new().unwrap();
 

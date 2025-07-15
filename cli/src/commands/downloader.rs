@@ -10,7 +10,7 @@ pub fn download(client: &mut shared::client::Client, url: String){
 
     client.send(
         ClientMessage::Command(
-            Command::Downloader(DownloaderCommand::QueueDownload(url))
+            Command::Downloader(DownloaderCommand::StartDownload(url))
         )
     ).unwrap();
 
