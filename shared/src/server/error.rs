@@ -47,5 +47,6 @@ pub enum PlayerError {
 pub enum DownloaderError{
     #[error("This is a test error and shouldn't be used in any public context")]
     Test,
-
+    #[error("Playlists are not currently supported")]
+    PlaylistNotSupported
 }

@@ -46,6 +46,10 @@ pub fn start(
         },
     };
 
+    if cfg.url.contains("/playlist?"){
+        panic!("Playlists are not supported right now");
+    }
+
     let song_dir = Box::new(shared::path::songs_path().display().to_string());
 
     let uuid = uuid::Uuid::new_v4();
@@ -92,13 +96,16 @@ pub fn start(
 
         let mut handle = cmd.spawn().unwrap();
 
-        let mut stdout = NonBlockingReader::from_fd(handle.stdout.take().unwrap()).unwrap();
-        let mut stderr = NonBlockingReader::from_fd(handle.stderr.take().unwrap()).unwrap();
+        let mut stdout = NonBlockingReader::from_fd(
+            handle.stdout.take().unwrap()
+        ).unwrap();
+        let mut stderr = NonBlockingReader::from_fd(
+            handle.stderr.take().unwrap()
+        ).unwrap();
         let mut stdout_buffer = Vec::new();
-
         let mut stderr_buffer = Vec::new();
+
         loop {
-            // debug!("loop");
             let _ = stdout.read_available(&mut stdout_buffer).unwrap();
             if stderr.read_available(&mut stderr_buffer).unwrap() != 0 {
                 let s = String::from_utf8_lossy(&stderr_buffer);

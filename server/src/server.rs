@@ -14,7 +14,7 @@ pub fn recv_commands(
         shared::{
             command::Command,
             message::{ClientMessage, ServerMessage},
-        }
+        },
     };
 
     let Some(socket) = socket_opt else {
@@ -37,13 +37,10 @@ pub fn recv_commands(
             ClientMessage::Command(command) => match command {
                 Command::Player(pc) => {
                     if let Err(e) = handle_player_command(socket, music_player, pc) {
-                        let _ =
-                            socket.send(ServerMessage::Error(Error::Player(e)));
+                        let _ = socket.send(ServerMessage::Error(Error::Player(e)));
                     }
                 }
-                Command::Downloader(dc) => {
-                    handle_downloader_command(socket, download_mgr, dc)
-                }
+                Command::Downloader(dc) => handle_downloader_command(socket, download_mgr, dc),
             },
             ClientMessage::Ping => {
                 if let Err(e) = socket.send(ServerMessage::Pong) {
@@ -57,10 +54,7 @@ pub fn recv_commands(
 }
 
 pub fn handle_player_command(
-    socket: &mut networking::Socket<
-        shared::message::ClientMessage,
-        shared::message::ServerMessage,
-    >,
+    socket: &mut networking::Socket<shared::message::ClientMessage, shared::message::ServerMessage>,
     music_player: &mut Box<dyn crate::player::Player>,
     command: shared::command::PlayerCommand,
 ) -> crate::player::Result<()> {
@@ -140,17 +134,22 @@ pub fn handle_player_command(
 }
 
 pub fn handle_downloader_command(
-    socket: &mut networking::Socket<
-        shared::message::ClientMessage,
-        shared::message::ServerMessage,
-    >,
+    socket: &mut networking::Socket<shared::message::ClientMessage, shared::message::ServerMessage>,
     download_mgr: &mut crate::downloader::DownloadManager,
     command: shared::command::DownloaderCommand,
 ) {
-    use shared::command::DownloaderCommand;
+    use shared::{command::DownloaderCommand, server::error::DownloaderError};
 
     match command {
         DownloaderCommand::QueueDownload(url) => {
+            if url.contains("/playlist?") || url.contains("&list=") {
+                if let Err(e) = socket.send(shared::message::ServerMessage::Error(
+                    DownloaderError::PlaylistNotSupported.into(),
+                )) {
+                    error!("Failed to send back PlaylistNotSupported error to client due to: {e}");
+                };
+                return;
+            }
             // debug!("Received dl request");
             // let config = crate::downloader::DownloadConfig { url };
 
