@@ -22,10 +22,10 @@ pub fn recv_commands(
     };
 
     loop {
-        let (header, cm) = match socket.try_recv() {
+        let (_header, cm) = match socket.try_recv() {
             Ok(message) => message,
             Err(e) => {
-                warn!("Client disconnected");
+                warn!("Client disconnected: ({e})");
                 *socket_opt = None;
                 break;
             }
@@ -110,7 +110,7 @@ pub fn handle_player_command(
             let _ = socket.send(ServerMessage::AudioDevice(music_player.audio_device()?));
         }
         PlayerCommand::SetDeviceByName(new_device_name) => {
-            use shared::server::error::{Error, PlayerError};
+            use shared::error::server::{Error, PlayerError};
 
             let message = match music_player.set_device_by_name(&new_device_name) {
                 Ok(_) => ServerMessage::AudioDevice(new_device_name),
@@ -138,7 +138,7 @@ pub fn handle_downloader_command(
     download_mgr: &mut crate::downloader::DownloadManager,
     command: shared::command::DownloaderCommand,
 ) {
-    use shared::{command::DownloaderCommand, server::error::DownloaderError};
+    use shared::{command::DownloaderCommand, error::server::DownloaderError};
 
     match command {
         DownloaderCommand::QueueDownload(url) => {

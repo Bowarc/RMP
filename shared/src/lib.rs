@@ -2,12 +2,12 @@
 extern crate log;
 
 pub mod command;
-pub mod server;
 pub mod client;
 pub mod message;
 pub mod song;
 pub mod audio_device_utils;
 pub mod path;
+pub mod error;
 
 
 pub const DEFAULT_ADDRESS: std::net::SocketAddr = std::net::SocketAddr::V4(

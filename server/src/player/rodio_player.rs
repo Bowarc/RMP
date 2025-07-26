@@ -107,6 +107,7 @@ impl super::Player for RodioPlayer {
 
         let current_song = self.queue.get(*qp as usize).unwrap(); // This should never happend, we checked if the list was long enough just before
 
+        debug!("{:?}", self.config.song_path());
         let Some(reader) = current_song.data(self.config.song_path()) else {
             return Err(crate::error::PlayerError::FileRead {
                 target: current_song.uuid().as_hyphenated().to_string(),
@@ -118,8 +119,8 @@ impl super::Player for RodioPlayer {
             name: "Rodio".to_string(),
             error: format!(
                 "Decoder initialisation failed on {} with: {}",
-                current_song.uuid().as_hyphenated().to_string(),
-                e.to_string()
+                current_song.uuid().as_hyphenated(),
+                e
             ),
         })?;
 
@@ -289,7 +290,10 @@ impl super::Player for RodioPlayer {
         // Autoplay
 
         // should be fine as the order of operation should optimize the unwrap condition out if the 2nd cond is not met
-        if self.sink.len() == 0 && self.queue_pointer.is_some() && self.queue_pointer.unwrap() as usize != self.queue.len() - 1 {
+        if self.sink.len() == 0
+            && self.queue_pointer.is_some()
+            && self.queue_pointer.unwrap() as usize != self.queue.len() - 1
+        {
             *self.queue_pointer.as_mut().unwrap() += 1;
             self.play()?
         }

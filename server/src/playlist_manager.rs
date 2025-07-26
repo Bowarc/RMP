@@ -1,6 +1,1 @@
-
-
-
-pub struct PlaylistManager{
-
-}
+pub struct PlaylistManager {}

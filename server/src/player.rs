@@ -15,7 +15,9 @@ pub trait Player {
         if index >= q.len() as u64 {
             // self.pause()?;
             // self.clear_queue()?;
-            return Err(crate::error::PlayerError::Custom(String::from("An error occured while validating the queue: currently_playing_index was ouside the queue's range")));
+            return Err(crate::error::PlayerError::Custom(String::from(
+                "An error occured while validating the queue: currently_playing_index was ouside the queue's range",
+            )));
         };
 
         Ok(q.get(index as usize).unwrap().clone()) // This unwrap is fine as we just checked if the index was inbounds

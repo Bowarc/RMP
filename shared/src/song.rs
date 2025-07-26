@@ -75,6 +75,20 @@ impl Metadata {
     pub fn duration(&self) -> &std::time::Duration {
         &self.duration
     }
+    pub fn write_to_file(&self, uuid: uuid::Uuid) -> Result<(), crate::error::ImporterError> {
+        use std::fs::OpenOptions;
+        let path = {
+            let mut p = super::path::songs_path();
+            p.push(format!("{uuid}.metadata"));
+            p
+        };
+
+        let file = OpenOptions::new().create_new(true).write(true).open(path)?;
+
+        ron::ser::to_writer(file, self)?;
+
+        Ok(())
+    }
 }
 
 ///
@@ -89,9 +103,8 @@ pub fn convert_local(
     local_file_path: std::path::PathBuf,
     local_storage_path: std::path::PathBuf,
 ) -> Option<Song> {
-    use rodio::decoder::Decoder;
-    use std::fs::File;
-    use std::io::{Read as _, Write as _};
+    use rodio::{decoder::Decoder, Source};
+    use std::fs::OpenOptions;
 
     let uuid = uuid::Uuid::new_v4();
 
@@ -116,42 +129,47 @@ pub fn convert_local(
         .unwrap_or(DEFAULT_NAME)
         .to_string();
 
-    let meta_file_path = format!("{p}/{uuid}.metadata", p = local_storage_path.display());
-    let data_file_path = format!("{p}/{uuid}", p = local_storage_path.display());
+    let meta_file_path = {
+        let mut p = local_storage_path.clone();
+        p.push(format!("{uuid}.metadata"));
+        p
+    };
 
-    Decoder::new(std::fs::File::open(&local_file_path).ok()?)
+    let data_file_path = {
+        let mut p = local_storage_path.clone();
+        p.push(uuid.as_hyphenated().to_string());
+        p
+    };
+
+    let decoder = Decoder::new(std::fs::File::open(&local_file_path).ok()?)
         .inspect_err(|e| {
             error!("Invalid file format: {e}");
         })
         .ok()?;
+    let duration = match decoder.total_duration() {
+        Some(d) => d,
+        None => {
+            // This gives the duration, which is already not that bad, but i fear that it's the only thing this crate will bring
+            let data = ffprobe::ffprobe(&local_file_path).unwrap();
+            debug!("ffprobe data: {data:#?}");
 
-    // This gives the duration, which is already not that bad, but i fear that it's the only thing this crate will bring
-    let data = ffprobe::ffprobe(&local_file_path).unwrap();
+            data.format.get_duration().unwrap()
+        }
+    };
 
-    debug!("ffprobe data: {data:#?}");
-
-    // Write metadata for imported song
-    let metadata_file = File::create_new(&meta_file_path)
+    let metadata = Metadata::new(local_file_name.clone(), duration);
+    metadata
+        .write_to_file(uuid)
         .map_err(|e| {
-            error!("Failed to create metadata file with: {e}");
-            e
+            error!("Failed to write metadata due to: {e}");
         })
         .ok()?;
 
-    let metadata = Metadata::new(
-        local_file_name.clone(),
-        data.format
-            .get_duration()
-            .unwrap_or(std::time::Duration::from_secs(1)),
-    );
-
-    if let Err(e) = ron::ser::to_writer(metadata_file, &metadata) {
-        error!("Could not write metadata file due to: {e}");
-        return None;
-    }
-
     // Write new data file for imported song (which is just a plain copy)
-    let mut data_file = File::create_new(&data_file_path)
+    let mut data_file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&data_file_path)
         .map_err(|e| {
             let _ = std::fs::remove_file(&meta_file_path);
             error!("Failed to create data file with: {e}");
@@ -159,22 +177,16 @@ pub fn convert_local(
         })
         .ok()?;
 
-    let mut local_file = File::open(local_file_path).unwrap(); // yea
+    let mut local_file = OpenOptions::new().read(true).open(local_file_path).unwrap(); // yea
 
-    let mut local_buffer = Vec::new();
+    let _ = std::io::copy(&mut local_file, &mut data_file)
+        .map_err(|e| {
+            error!("Failed to copy to local storage due to: {e}");
 
-    if let Err(e) = local_file.read_to_end(&mut local_buffer) {
-        error!("Could not read local file due to: {e}");
-        return None;
-    }
-
-    if let Err(e) = data_file.write_all(&local_buffer) {
-        error!("Could not write data file due to: {e}");
-        // TODO: Cleanup of actions done above
-        let _ = std::fs::remove_file(meta_file_path);
-        let _ = std::fs::remove_file(data_file_path);
-        return None;
-    }
+            let _ = std::fs::remove_file(meta_file_path);
+            let _ = std::fs::remove_file(data_file_path);
+        })
+        .ok()?;
 
     Some(Song::new(uuid, metadata))
 }

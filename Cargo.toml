@@ -5,7 +5,7 @@ members = [
     "tui",
     "gui",
     "cli",
-    "shared",
+    "shared", "models",
 ]
 
 [profile.dev.package."*"]

@@ -8,28 +8,22 @@ name = "server"
 path = "src/main.rs"
 
 [dependencies]
-thiserror.workspace = true
 shared = { path = "../shared" }
+models = { path = "../models" }
+
 stp = { git = "https://github.com/bowarc/stp" }
+nonblock = { git = "https://github.com/Bowarc/nonblock-rs", version = "0.2.0" }
+
 ctrlc = "3.4.5"
 spin_sleep_util = "0.1.1"
-# futures-lite = { version = "2.3.0", default-features=false, features = ["std"] }
+
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
 
 logger.workspace = true
 log.workspace = true
 time.workspace = true
 networking.workspace = true
-threading.workspace = true
-
 uuid.workspace = true
 rodio.workspace = true
 
-tokio = { version = "1.39.3", features = ["rt-multi-thread"] }
-ron.workspace = true
-lazy_static = "1.5.0"
-# atomic_float = "1.1.0"
-atomic_enum = "0.3.0"
-parking_lot = "0.12.4"
-nonblock = { git = "https://github.com/Bowarc/nonblock-rs", version = "0.2.0" }
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"

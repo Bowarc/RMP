@@ -14,7 +14,6 @@ impl DownloadHandle {
         // metadata: std::sync::Arc<std::sync::Mutex<Option<shared::song::Metadata>>>,
         percentage: std::sync::Arc<std::sync::atomic::AtomicU32>,
     ) -> Self {
-        
         Self {
             future,
             current_percentage: percentage,

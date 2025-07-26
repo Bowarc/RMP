@@ -19,7 +19,7 @@ impl DownloadManager {
         self.queue.push_back(cfg)
     }
 
-    pub fn update(&mut self) -> Result<(), shared::server::error::DownloaderError> {
+    pub fn update(&mut self) -> Result<(), shared::error::server::DownloaderError> {
         if let Some(current) = &mut self.current {
             // debug!("Updating current ({:?}) ({}%)", current.state(), current.download_percentage());
             match current.state() {

@@ -46,11 +46,11 @@ pub fn start(
         },
     };
 
-    if cfg.url.contains("/playlist?"){
+    if cfg.url.contains("/playlist?") {
         panic!("Playlists are not supported right now");
     }
 
-    let song_dir = Box::new(shared::path::songs_path().display().to_string());
+    let song_dir = shared::path::songs_path().display().to_string();
 
     let uuid = uuid::Uuid::new_v4();
 
@@ -58,21 +58,21 @@ pub fn start(
     let percentage_clone = percentage.clone();
 
     let future = threadpool.run(move || {
-        let args: [&str; 19] = [
+        let args = [
             "-P",
-            Box::leak(song_dir), // FIXME
+            &song_dir,
             "-o",
             // "%(title)s.%(ext)s",
-            Box::leak(Box::new(format!("{}", uuid::Uuid::new_v4()))), // FIXME
-            Box::leak(Box::new(cfg.url)),                             // FIXME
-            //
+            &format!("{uuid}"),
+            &cfg.url,
+            // To be able to read the output
             "--print",
             r#"before_dl:__{"type": "pre_download", "video_id": "%(id)s"}"#,
             "--print",
             r#"playlist:__{"type": "end_of_playlist"}"#,
             "--print",
             r#"after_video:__{"type": "end_of_video"}"#,
-            //
+            // Read progress
             "--progress-template",
             concat!(
                 r#"__{"type": "downloading","#,
@@ -81,12 +81,16 @@ pub fn start(
                 r#""elapsed": %(progress.elapsed)s, "speed": %(progress.speed)s, "playlist_count": %(info.playlist_count)s,"#,
                 r#""playlist_index": %(info.playlist_index)s }"#
             ),
+            "--extract-audio",
             "--no-quiet",
             "-x",
             "--audio-format",
             "mp3",
             "--audio-quality",
             "0", // best
+            "--write-info-json", // Writes a lot of metadata to {uuid}.info.json
+            "--no-cache-dir",
+            "--print-traffic"
         ];
 
         let mut cmd = Command::new("yt-dlp");
@@ -166,6 +170,54 @@ pub fn start(
         }
 
         handle.wait().unwrap();
+        // Here, we know that yt-dlp has exited
+        // So we can do some post processing of the downloaded data
+        // Since we added the `"--write-info-json"` arg to yt-dlp,
+        // we *should* have a {uuid}.info.json file
+        // Let's parse that.
+        let json_info_path = {
+            let mut p = shared::path::songs_path();
+            p.push(format!("{uuid}.info.json"));
+            p
+        };
+
+        debug!("Checking {json_info_path:?}" );
+
+        let json_info_file = match std::fs::OpenOptions::new().read(true).open(&json_info_path){
+            Ok(f) => f,
+            Err(e) => {
+                error!("Could not open upload json info due to: {e}");
+                panic!("{e}" )
+            },
+        };
+
+        let json_info: models::ytdlp_info::YtdlpInfo = match serde_json::from_reader(json_info_file) {
+            Ok(ji) => ji,
+            Err(e) => {
+                error!("Could not deserialiize json info file from download {uuid} due to: {e}");
+                panic!("{e}")
+            },
+        };
+
+        std::fs::remove_file(json_info_path).unwrap();
+
+        debug!("info duration: {}", json_info.duration);
+
+        let metadata = shared::song::Metadata::new(json_info.title, std::time::Duration::from_secs_f64(json_info.duration));
+
+        metadata.write_to_file(uuid).unwrap();
+
+        // Aaaand remove the the extension from the output file
+
+        std::fs::rename({
+            let mut p = shared::path::songs_path();
+            p.push(format!("{uuid}.mp3"));
+            p
+        }, {
+            let mut p = shared::path::songs_path();
+            p.push(uuid.as_hyphenated().to_string());
+            p
+        }).unwrap();
     });
 
     DownloadHandle::new(future, uuid, percentage)

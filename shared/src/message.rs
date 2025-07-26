@@ -28,7 +28,7 @@ pub enum ServerMessage {
     Position(std::time::Duration),
 
     // downloader
-    Error(crate::server::error::Error),
+    Error(crate::error::server::Error),
 }
 
 impl networking::Message for ClientMessage {

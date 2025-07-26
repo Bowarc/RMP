@@ -1,19 +1,13 @@
 #[macro_use]
 extern crate log;
 
-#[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
-extern crate atomic_enum;
-
 mod config;
 mod downloader;
 mod player;
 mod playlist_manager;
 mod server;
 
-use shared::server::error;
+use shared::error::server as error;
 
 const TARGET_TPS: f32 = 10.;
 
@@ -63,19 +57,19 @@ fn main() {
     debug!("Starting loop with {TARGET_TPS} TPS");
     while running.load(std::sync::atomic::Ordering::Acquire) {
         // ignore any connection if there is a client already connected
-        if socket_opt.is_none() {
-            if let Ok((stream, addr)) = listener.accept() {
-                info!("New connection from {addr}");
-                socket_opt = Some(networking::Socket::new(stream));
-            }
+        if socket_opt.is_none()
+            && let Ok((stream, addr)) = listener.accept()
+        {
+            info!("New connection from {addr}");
+            socket_opt = Some(networking::Socket::new(stream));
         }
         if let Err(e) = music_player.update() {
             error!("An error occured while updating the music player: {e}");
             if let Some(socket) = &mut socket_opt {
                 socket
-                    .send(shared::message::ServerMessage::Error(
-                        shared::server::error::Error::Player(e),
-                    ))
+                    .send(shared::message::ServerMessage::Error(error::Error::Player(
+                        e,
+                    )))
                     .unwrap();
             }
         };
@@ -85,7 +79,7 @@ fn main() {
             if let Some(socket) = &mut socket_opt {
                 socket
                     .send(shared::message::ServerMessage::Error(
-                        shared::server::error::Error::Downloader(e),
+                        error::Error::Downloader(e),
                     ))
                     .unwrap();
             }
