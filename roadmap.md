@@ -11,7 +11,7 @@
         - [x] Queue a download request
         - [x] Execute a download request
         - [x] mp3 output
-        - [ ] Collect and create metadata
+        - [x] Collect and create metadata
         - [ ] Cleanly stop a download request
         - [ ] Clear download queue
         - [ ] Get info about current download
