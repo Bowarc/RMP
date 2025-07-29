@@ -6,3 +6,7 @@ edition = "2021"
 [[bin]]
 name = "gui_client"
 path = "src/main.rs"
+
+[dependencies]
+eframe = "0.32.0"
+egui = "0.32.0"
