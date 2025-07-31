@@ -1,6 +1,6 @@
 ### Rust Music Player
 
-A music player interchangeable client
+A music player with interchangeable clients
 
 ## Goal
 
