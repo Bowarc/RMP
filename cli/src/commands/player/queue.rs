@@ -8,19 +8,19 @@ pub enum SongIdentifier {
     Title(String),
 }
 
-pub fn get(client: &mut shared::client::Client) -> Vec<shared::song::Song> {
-    crate::send_and_wait!(client, Command::Player(PlayerCommand::GetQueue), Vec<shared::song::Song>, ServerMessage::PlayerQueue(queue) => queue)
+pub fn get(socket: &mut shared::Socket) -> Vec<shared::song::Song> {
+    crate::send_and_wait!(socket, Command::Player(PlayerCommand::GetQueue), Vec<shared::song::Song>, ServerMessage::PlayerQueue(queue) => queue)
 }
 
-pub fn add(client: &mut shared::client::Client, si: SongIdentifier) {
+pub fn add(socket: &mut shared::Socket, si: SongIdentifier) {
     match si {
         SongIdentifier::Uuid(uuid) => {
-            client
+            socket
                 .send(ClientMessage::Command(Command::Player(
                     PlayerCommand::AddToQueue(uuid),
                 )))
                 .unwrap();
-            debug!("{:?}", client.recv(std::time::Duration::from_secs(1)));
+            debug!("{:?}", socket.recv(std::time::Duration::from_secs(1)));
         }
         SongIdentifier::Title(_title) => {
             // Todo: Get the list of locally imported songs,
@@ -31,10 +31,10 @@ pub fn add(client: &mut shared::client::Client, si: SongIdentifier) {
     }
 }
 
-pub fn remove(client: &mut shared::client::Client, si: SongIdentifier) {
+pub fn remove(socket: &mut shared::Socket, si: SongIdentifier) {
     match si {
         SongIdentifier::Uuid(uuid) => {
-            client
+            socket
                 .send(ClientMessage::Command(Command::Player(
                     PlayerCommand::RemoveFromQueue(uuid),
                 )))
@@ -49,8 +49,8 @@ pub fn remove(client: &mut shared::client::Client, si: SongIdentifier) {
     }
 }
 
-pub fn clear(client: &mut shared::client::Client) {
-    client
+pub fn clear(socket: &mut shared::Socket) {
+    socket
         .send(ClientMessage::Command(Command::Player(
             PlayerCommand::ClearQueue,
         )))

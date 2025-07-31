@@ -1,4 +1,4 @@
-pub fn download(client: &mut shared::client::Client, url: String){
+pub fn download(socket: &mut shared::Socket, url: String){
     use {
         shared::{
             command::{Command, DownloaderCommand},
@@ -6,7 +6,7 @@ pub fn download(client: &mut shared::client::Client, url: String){
         }
     };
 
-    client.send(
+    socket.send(
         ClientMessage::Command(
             Command::Downloader(DownloaderCommand::QueueDownload(url))
         )

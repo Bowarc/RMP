@@ -3,30 +3,30 @@ use shared::{
     message::{ClientMessage, ServerMessage},
 };
 
-pub fn get(client: &mut shared::client::Client) -> f32 {
-    crate::send_and_wait!(client, Command::Player(
+pub fn get(socket: &mut shared::Socket) -> f32 {
+    crate::send_and_wait!(socket, Command::Player(
             PlayerCommand::GetVolume,
         ), f32, ServerMessage::PlayerVolume(vol) => vol)
 }
 
-pub fn set(client: &mut shared::client::Client, amnt: f32) {
-    client
+pub fn set(socket: &mut shared::Socket, amnt: f32) {
+    socket
         .send(ClientMessage::Command(Command::Player(
             PlayerCommand::SetVolume(amnt),
         )))
         .unwrap();
 
-    debug!("{:?}", client.recv(std::time::Duration::from_secs(1)))
+    debug!("{:?}", socket.recv(std::time::Duration::from_secs(1)))
 }
 
-pub fn up(client: &mut shared::client::Client, amnt: f32) {
-    let current = get(client);
+pub fn up(socket: &mut shared::Socket, amnt: f32) {
+    let current = get(socket);
 
-    set(client, current + amnt)
+    set(socket, current + amnt)
 }
 
-pub fn down(client: &mut shared::client::Client, amnt: f32) {
-    let current = get(client);
+pub fn down(socket: &mut shared::Socket, amnt: f32) {
+    let current = get(socket);
 
-    set(client, current - amnt)
+    set(socket, current - amnt)
 }

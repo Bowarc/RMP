@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+
 mod cmd_parser;
 mod commands;
 
@@ -24,14 +25,14 @@ fn main() {
             )),
     ]);
 
-    let mut client = shared::client::Client::new().unwrap();
+    let mut socket= shared::socket::new().unwrap();
 
     match cmd_parser::cmd().get_matches().subcommand() {
         Some(("player", args)) => match args.subcommand() {
-            Some(("play", _args)) => commands::player::play(&mut client),
-            Some(("pause", _args)) => commands::player::pause(&mut client),
+            Some(("play", _args)) => commands::player::play(&mut socket),
+            Some(("pause", _args)) => commands::player::pause(&mut socket),
             Some(("now_playing", _args)) => {
-                let (song, index) = commands::player::now_playing(&mut client);
+                let (song, index) = commands::player::now_playing(&mut socket);
 
                 debug!(
                     "Currently playing ({index}) {title}",
@@ -40,7 +41,7 @@ fn main() {
             }
             Some(("queue", args)) => match args.subcommand() {
                 Some(("get", _args)) => {
-                    let queue = commands::player::queue::get(&mut client);
+                    let queue = commands::player::queue::get(&mut socket);
 
                     debug!(
                         "{:?}",
@@ -58,7 +59,7 @@ fn main() {
                     } else {
                         commands::player::queue::SongIdentifier::Title(arg.to_owned())
                     };
-                    commands::player::queue::add(&mut client, si);
+                    commands::player::queue::add(&mut socket, si);
                 }
                 Some(("remove", args)) => {
                     use std::str::FromStr as _;
@@ -68,40 +69,40 @@ fn main() {
                     } else {
                         commands::player::queue::SongIdentifier::Title(arg.to_owned())
                     };
-                    commands::player::queue::remove(&mut client, si);
+                    commands::player::queue::remove(&mut socket, si);
                 }
-                Some(("clear", _args)) => commands::player::queue::clear(&mut client),
+                Some(("clear", _args)) => commands::player::queue::clear(&mut socket),
                 _ => unreachable!(),
             },
             Some(("volume", args)) => match args.subcommand() {
                 Some(("get", _args)) => {
-                    let out = commands::player::volume::get(&mut client);
+                    let out = commands::player::volume::get(&mut socket);
                     debug!("{out}")
                 }
                 Some(("set", args)) => {
                     let amount = args.get_one::<f32>("VALUE").unwrap();
-                    commands::player::volume::set(&mut client, *amount);
+                    commands::player::volume::set(&mut socket, *amount);
                 }
                 Some(("up", args)) => {
                     let amount = args.get_one::<f32>("AMNT").unwrap();
-                    commands::player::volume::up(&mut client, *amount)
+                    commands::player::volume::up(&mut socket, *amount)
                 }
                 Some(("down", args)) => {
                     let amount = args.get_one::<f32>("AMNT").unwrap();
-                    commands::player::volume::down(&mut client, *amount)
+                    commands::player::volume::down(&mut socket, *amount)
                 }
                 _ => unreachable!(),
             },
             Some(("position", args)) => match args.subcommand() {
                 Some(("get", _args)) => {
-                    let pos = commands::player::position::get(&mut client);
+                    let pos = commands::player::position::get(&mut socket);
                     debug!("Player's currently at {pos:?}");
                 }
                 Some(("set", args)) => {
                     let position_s = args.get_one::<u64>("VALUE").unwrap();
 
                     commands::player::position::set(
-                        &mut client,
+                        &mut socket,
                         std::time::Duration::from_secs(*position_s),
                     )
                 }
@@ -109,7 +110,7 @@ fn main() {
                     let position_s = args.get_one::<u64>("AMNT").unwrap();
 
                     commands::player::position::forward(
-                        &mut client,
+                        &mut socket,
                         std::time::Duration::from_secs(*position_s),
                     )
                 }
@@ -117,7 +118,7 @@ fn main() {
                     let position_s = args.get_one::<u64>("AMNT").unwrap();
 
                     commands::player::position::backward(
-                        &mut client,
+                        &mut socket,
                         std::time::Duration::from_secs(*position_s),
                     )
                 }
@@ -125,12 +126,12 @@ fn main() {
             },
             Some(("device", args)) => match args.subcommand() {
                 Some(("get", _args)) => {
-                    let name = commands::player::device::get(&mut client);
+                    let name = commands::player::device::get(&mut socket);
                     debug!("{name}")
                 }
                 Some(("set", args)) => {
                     let device_name = args.get_one::<String>("NAME").unwrap();
-                    commands::player::device::set(&mut client, device_name.to_owned())
+                    commands::player::device::set(&mut socket, device_name.to_owned())
                 }
                 _ => unreachable!(),
             },
@@ -141,7 +142,7 @@ fn main() {
             match args.subcommand() {
                 Some(("start", args)) => {
                     let url = args.get_one::<String>("URL").unwrap(); // TODO: Take care of this one
-                    commands::downloader::download(&mut client, url.to_owned());
+                    commands::downloader::download(&mut socket, url.to_owned());
                 }
                 _ => unimplemented!(),
             }
@@ -151,5 +152,5 @@ fn main() {
 
     // shared::song::convert_local("D:/dev/rust/projects/rmp/songs/", "D:/dev/rust/projects/rmp/songs/")
 
-    client.shutdown();
+    socket.shutdown();
 }
