@@ -25,7 +25,7 @@ Still in very early phase of dev.
 Check the [Roadmap](./roadmap.md) for precise information
 
 ## Notes
-The current implementation of the downloader uses a Unix specific implementation of non blocking pipes, so the project doesn't compile on W$ for now (see #7).  
+The current implementation of the downloader uses a Unix specific implementation of non blocking pipes, so the project doesn't compile on W$ for now (see [#7](https://github.com/bowarc/rmp/issues/7)).  
 I currently use ytdlp as the backend for the downloader, but it's not too tightly integrated, so change is possible
 
 ## Installation
