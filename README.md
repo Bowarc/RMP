@@ -28,6 +28,15 @@ Check the [Roadmap](./roadmap.md) for precise information
 The current implementation of the downloader uses a Unix specific implementation of non blocking pipes, so the project doesn't compile on W$ for now (see #7).  
 I currently use ytdlp as the backend for the downloader, but it's not too tightly integrated, so change is possible
 
+## Project structure
+./server(bin) - The server, runs in the background and receive commands from clients.
+./cli(bin) - The CLI client
+./tui(bin) - The TUI client
+./gui(bin) - The GUI client
+./client(lib) - Helps creating new clients
+./shared(lib) - Holds a lot of shared definition
+./models(lib) - Stores models of json objects (helps with compilation times)
+
 ## Installation
 
 Still a big todo, I'll probably make a simple installer like the one I did for [Lumin](https://github.com/bowarc/lumin)
