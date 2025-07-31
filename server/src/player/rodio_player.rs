@@ -133,8 +133,11 @@ impl super::Player for RodioPlayer {
 
     fn pause(&mut self) -> super::Result<()> {
         self.sink.pause();
-        debug!("Rodio player paused !");
         Ok(())
+    }
+
+    fn is_playing(&self) -> bool {
+        !self.sink.is_paused()
     }
 
     fn add_queue(&mut self, uuid: uuid::Uuid) -> super::Result<()> {
@@ -288,6 +291,9 @@ impl super::Player for RodioPlayer {
 
     fn update(&mut self) -> super::Result<()> {
         // Autoplay
+        if self.sink.len() == 0 {
+            self.pause()?
+        }
 
         // should be fine as the order of operation should optimize the unwrap condition out if the 2nd cond is not met
         if self.sink.len() == 0

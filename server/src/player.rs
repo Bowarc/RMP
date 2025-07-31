@@ -6,6 +6,7 @@ pub type Result<T> = std::result::Result<T, crate::error::PlayerError>;
 pub trait Player {
     fn play(&mut self) -> Result<()>;
     fn pause(&mut self) -> Result<()>;
+    fn is_playing(&self) -> bool;
 
     fn currently_playing(&self) -> Result<shared::song::Song> {
         let q = self.queue()?;

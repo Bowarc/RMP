@@ -51,7 +51,7 @@ fn main() {
 
     let mut downloader = downloader::DownloadManager::default();
 
-    let listener = std::net::TcpListener::bind(shared::DEFAULT_ADDRESS).unwrap();
+    let listener = std::net::TcpListener::bind(shared::socket::DEFAULT_ADDRESS).unwrap();
     listener.set_nonblocking(true).unwrap();
 
     debug!("Starting loop with {TARGET_TPS} TPS");
@@ -61,8 +61,10 @@ fn main() {
             && let Ok((stream, addr)) = listener.accept()
         {
             info!("New connection from {addr}");
+            stream.set_nonblocking(true).unwrap();
             socket_opt = Some(networking::Socket::new(stream));
         }
+        
         if let Err(e) = music_player.update() {
             error!("An error occured while updating the music player: {e}");
             if let Some(socket) = &mut socket_opt {

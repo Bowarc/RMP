@@ -1,48 +1,64 @@
+#[macro_use]
+extern crate log;
+
+use std::str::FromStr;
+
 use eframe::egui;
 
 const TITLE_BAR_HEIGHT: f32 = 32.0;
 
-struct Download {
-    url: String,
-    progress: f32,
-}
+// struct Download {
+//     url: String,
+//     progress: f32,
+// }
 
 enum Tab {
     MusicPlayer,
     Downloads,
 }
-struct MyApp {
-    songs: Vec<String>,
-    selected_song: Option<usize>,
-    is_playing: bool,
-    current_position_s: f32,
-    elapsed_time_s: f32,
-    downloads: Vec<Download>,
-    new_download_url: String,
+struct Interface {
+    client: client::App,
     current_tab: Tab,
 }
 
-impl MyApp {
+impl Interface {
     fn new(_cc: &eframe::CreationContext) -> Self {
+        let mut client = client::App::default();
+        client
+            .socket_mut()
+            .send(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::AddToQueue(
+                    uuid::Uuid::from_str("4c40abd6-f2ed-47f8-9e6e-b235a8980835").unwrap(),
+                )
+                .into(),
+            ))
+            .unwrap();
+        client
+            .socket_mut()
+            .send(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::Play.into(),
+            ))
+            .unwrap();
+        client
+            .socket_mut()
+            .send(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
+            ))
+            .unwrap();
+        client
+            .socket_mut()
+            .send(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::GetPlayState.into(),
+            ))
+            .unwrap();
         Self {
-            songs: vec![
-                "Song 1".to_string(),
-                "Song 2".to_string(),
-                "Song 3".to_string(),
-                "Song 4".to_string(),
-            ],
-            selected_song: None,
-            is_playing: false,
-            current_position_s: 0.0,
-            elapsed_time_s: 0.0,
-            downloads: Vec::new(),
-            new_download_url: String::new(),
+            client,
             current_tab: Tab::MusicPlayer,
         }
     }
 }
 
-impl MyApp {
+impl Interface {
     fn render_title_bar(
         &mut self,
         ui: &mut egui::Ui,
@@ -149,30 +165,29 @@ impl MyApp {
     }
 
     fn player_tab(&mut self, ui: &mut egui::Ui, ectx: &egui::Context) {
-        if self.is_playing {
+        use std::time::Duration;
+        let mut to_send = Vec::new();
+
+        if self.client.player_data().playing {
             ectx.request_repaint();
-            self.elapsed_time_s += 0.1; // Simulate time passing
-
-            if self.elapsed_time_s >= 0.1 {
-                self.current_position_s += 0.1; // Increment by 0.1 seconds
-                self.elapsed_time_s = 0.0; // Reset the timer
-
-                if self.current_position_s > 100.0 {
-                    self.current_position_s = 100.0; // Stop at 100 seconds
-                    self.is_playing = false; // Stop playing when the song ends
-                }
-            }
+            to_send.push(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::GetPosition.into(),
+            ));
+            to_send.push(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::GetPlayState.into(),
+            ));
         }
+
         ui.horizontal(|ui| {
             // Create the sidebar for songs
             ui.vertical(|ui| {
                 ui.set_min_width(150.0);
                 ui.label("Songs");
-                for (i, song) in self.songs.iter().enumerate() {
-                    if ui.button(song).clicked() {
-                        self.selected_song = Some(i);
-                        self.current_position_s = 0.0; // Reset position when a new song is selected
-                        self.is_playing = true; // Start playing the new song
+                for song in self.client.player_data().song_list.iter() {
+                    if ui.button(song.metadata().title()).clicked() {
+                        to_send.push(shared::message::ClientMessage::Command(
+                            shared::command::PlayerCommand::ClearQueue.into(),
+                        ));
                     }
                 }
             });
@@ -180,72 +195,116 @@ impl MyApp {
             // Main content area
             ui.vertical(|ui| {
                 ui.label("Now Playing:");
-                if let Some(index) = self.selected_song {
-                    ui.label(&self.songs[index]);
+                if let Some(song) = &self.client.player_data().current_song {
+                    ui.label(song.metadata().title());
                     ui.horizontal(|ui| {
                         ui.label("Position:");
+                        let mut p = self.client.player_data().position.as_secs_f32();
                         ui.add(
-                            egui::Slider::new(&mut self.current_position_s, 0.0..=100.0)
-                                .text("seconds"),
+                            egui::Slider::new(
+                                &mut p,
+                                0.0..=song.metadata().duration().as_secs_f32(),
+                            )
+                            .text("seconds"),
                         );
+                        if p != self.client.player_data().position.as_secs_f32() && self.client.player_data().playing{
+                            to_send.push(shared::message::ClientMessage::Command(
+                                shared::command::PlayerCommand::SetPosition(
+                                    Duration::from_secs_f32(p),
+                                )
+                                .into(),
+                            ));
+                        }
                     });
 
                     if ui
-                        .button(if self.is_playing { "Pause" } else { "Play" })
+                        .button(if self.client.player_data().playing {
+                            "Pause"
+                        } else {
+                            "Play"
+                        })
                         .clicked()
                     {
-                        self.is_playing = !self.is_playing;
+                        let cmd = match self.client.player_data().playing {
+                            true => shared::command::PlayerCommand::Pause,
+                            false => shared::command::PlayerCommand::Play,
+                        };
+                        to_send.push(shared::message::ClientMessage::Command(cmd.into()));
+                        ectx.request_repaint();
                     }
                 } else {
                     ui.label("Select a song from the sidebar.");
                 }
             });
         });
+
+        for msg in to_send.into_iter() {
+            debug!("Sending: {msg:?}");
+            if let Err(e) = self.client.socket_mut().send(msg.clone()) {
+                error!("Failed to send {msg:?} due to: {e}");
+            }
+        }
     }
     fn downloader_tab(&mut self, ui: &mut egui::Ui, ectx: &egui::Context) {
+        let mut to_send = Vec::new();
         ui.group(|ui| {
             ui.label("Download Music");
             ui.horizontal(|ui| {
                 ui.label("URL:");
-                ui.text_edit_singleline(&mut self.new_download_url);
+                ui.text_edit_singleline(&mut self.client.downloader_data_mut().new_download_url);
                 if ui.button("Download").clicked() {
                     // Simulate adding a download
-                    self.downloads.push(Download {
-                        url: self.new_download_url.clone(),
-                        progress: 0.0,
-                    });
-                    self.new_download_url.clear(); // Clear the input field
+                    to_send.push(shared::message::ClientMessage::Command(
+                        shared::command::DownloaderCommand::QueueDownload(
+                            self.client.downloader_data().new_download_url.clone(),
+                        )
+                        .into(),
+                    ));
+                    self.client.downloader_data_mut().new_download_url.clear(); // Clear the input field
                 }
             });
+            
             // Display download queue
-            for download in &mut self.downloads {
-                ui.horizontal(|ui| {
-                    ui.label(&download.url);
-                    let progress = &mut download.progress;
-                    ui.horizontal(|ui| {
-                        ui.set_min_width(12. * 3.);
-                        ui.label(format!("{:.0}%", *progress * 100.0));
-                    });
-                    ui.add(egui::ProgressBar::new(*progress).desired_width(100.0));
-                    // Simulate progress for demonstration
-                    *progress += 0.003; // Increment progress
-                    if *progress >= 1.0 {
-                        *progress = 1.0; // Cap at 100%
-                    }
-                });
+            for download in self
+                .client
+                .downloader_data_mut()
+                .current_downloads
+                .iter_mut()
+            {
+                // TODO: Implement a way to display currently running downloads
+                // ui.horizontal(|ui| {
+                //     ui.label(&download.url);
+                //     let progress = &mut download.progress;
+                //     ui.horizontal(|ui| {
+                //         ui.set_min_width(12. * 3.);
+                //         ui.label(format!("{:.0}%", *progress * 100.0));
+                //     });
+                //     ui.add(egui::ProgressBar::new(*progress).desired_width(100.0));
+                //     // Simulate progress for demonstration
+                //     *progress += 0.003; // Increment progress
+                //     if *progress >= 1.0 {
+                //         *progress = 1.0; // Cap at 100%
+                //     }
+                // });
             }
-            if self.downloads.iter().any(|d| d.progress != 1.) {
-                ectx.request_repaint();
-            }
-
-            self.downloads.retain(|d| d.progress != 1.);
+            
         });
+
+        for msg in to_send.into_iter() {
+            if let Err(e) = self.client.socket_mut().send(msg.clone()) {
+                error!("Failed to send {msg:?} due to: {e}");
+            }
+        }
     }
 }
 
-impl eframe::App for MyApp {
+impl eframe::App for Interface {
     fn update(&mut self, ectx: &egui::Context, _frame: &mut eframe::Frame) {
         // Update the current position if playing
+        if self.client.update() > 0{
+            // std::thread::sleep_ms(500);
+            ectx.request_repaint();
+        }
 
         egui::CentralPanel::default()
             .frame(
@@ -311,18 +370,35 @@ impl eframe::App for MyApp {
 }
 
 fn main() -> Result<(), eframe::Error> {
+    logger::init(
+        logger::Config::default()
+            .output(logger::Output::Stdout)
+            .filters(&[
+                ("networking", log::LevelFilter::Warn),
+                ("eframe", log::LevelFilter::Error),
+                ("egui_glow", log::LevelFilter::Error),
+                ("calloop", log::LevelFilter::Error),
+                ("egui_winit", log::LevelFilter::Error),
+                ("smithay_client_toolkit", log::LevelFilter::Error),
+                ("sctk_adwaita", log::LevelFilter::Off),
+                ("arboard", log::LevelFilter::Off),
+            ])
+            .colored(true),
+    );
+
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
             .with_inner_size(eframe::egui::vec2(800.0, 600.0))
             .with_decorations(false)
             .with_transparent(true)
-            .with_resizable(false)
+            .with_resizable(true)
             .with_title("RMP Gui"),
         ..Default::default()
     };
+
     eframe::run_native(
         "RMP Gui",
         options,
-        Box::new(|cc| Ok(Box::new(MyApp::new(cc)))),
+        Box::new(|cc| Ok(Box::new(Interface::new(cc)))),
     )
 }

@@ -1,12 +1,6 @@
 [workspace]
 resolver = "2" # What are the differences with v1 ?
-members = [
-    "server",
-    "tui",
-    "gui",
-    "cli",
-    "shared", "models",
-]
+members = ["server", "tui", "gui", "cli", "shared", "models", "client"]
 
 [profile.dev.package."*"]
 opt-level = 3
@@ -19,8 +13,12 @@ log = "0.4.20"
 logger = { git = "https://github.com/Bowarc/Crates.git", package = "logger" }
 time = { git = "https://github.com/Bowarc/Crates.git", package = "time" }
 
-networking = { git ="https://github.com/Bowarc/Crates.git", package = "networking" }
+networking = { git = "https://github.com/Bowarc/Crates.git", package = "networking" }
 threading = { git = "https://github.com/Bowarc/Crates.git", package = "threading" }
 
-rodio = { version= "0.19.0", features = ["wav", "mp3", "minimp3"], default-features = false }
+rodio = { version = "0.19.0", features = [
+  "wav",
+  "mp3",
+  "minimp3",
+], default-features = false }
 ron = "0.8.1"

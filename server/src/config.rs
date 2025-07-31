@@ -14,7 +14,6 @@ impl PlayerConfig {
 
 impl Default for PlayerConfig {
     fn default() -> Self {
-        use std::path::PathBuf;
         PlayerConfig {
             // song_path: PathBuf::from("./songs/"),
             song_path: shared::path::songs_path(),

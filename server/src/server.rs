@@ -23,15 +23,21 @@ pub fn recv_commands(
 
     loop {
         let (_header, cm) = match socket.try_recv() {
-            Ok(message) => message,
+            Ok(h_m) => h_m,
             Err(e) => {
+                if let shared::error::SocketError::StreamRead(ref io) = e
+                    && io.kind() == std::io::ErrorKind::WouldBlock
+                {
+                    break;
+                }
                 warn!("Client disconnected: ({e})");
                 *socket_opt = None;
+                // return;
                 break;
             }
         };
 
-        info!("Received a message from client");
+        info!("Received a message from socket: {cm:?}");
 
         match cm {
             ClientMessage::Command(command) => match command {
@@ -65,13 +71,21 @@ pub fn handle_player_command(
         PlayerCommand::Play => {
             music_player.play()?;
 
-            // This will error if the server is not connected to any client, but we don't care as the server is autonomous */
+            // This will error if the server is not connected to any client but we don't care as the server is autonomous */
             let _ = socket.send(ServerMessage::PlayerStatePlay);
         }
         PlayerCommand::Pause => {
             music_player.pause()?;
 
             let _ = socket.send(ServerMessage::PlayerStatePause);
+        }
+        PlayerCommand::GetPlayState => {
+            let state = match &music_player.is_playing() {
+                true => ServerMessage::PlayerStatePlay,
+                false => ServerMessage::PlayerStatePause,
+            };
+
+            let _ = socket.send(state);
         }
         PlayerCommand::GetCurrentlyPlaying => {
             let song = music_player.currently_playing()?;
@@ -124,7 +138,7 @@ pub fn handle_player_command(
 
         PlayerCommand::SetPosition(pos) => {
             music_player.set_pos(pos)?;
-            let _ = socket.send(ServerMessage::Position(music_player.pos()?)); // qol for client sync
+            let _ = socket.send(ServerMessage::Position(music_player.pos()?)); // qol for socket.sync
         }
         PlayerCommand::GetPosition => {
             let _ = socket.send(ServerMessage::Position(music_player.pos()?));
@@ -150,6 +164,7 @@ pub fn handle_downloader_command(
                 };
                 return;
             }
+
             // debug!("Received dl request");
             // let config = crate::downloader::DownloadConfig { url };
 
