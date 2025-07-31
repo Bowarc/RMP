@@ -29,13 +29,13 @@ The current implementation of the downloader uses a Unix specific implementation
 I currently use ytdlp as the backend for the downloader, but it's not too tightly integrated, so change is possible
 
 ## Project structure
-./server(bin) - The server, runs in the background and receive commands from clients.
-./cli(bin) - The CLI client
-./tui(bin) - The TUI client
-./gui(bin) - The GUI client
-./client(lib) - Helps creating new clients
-./shared(lib) - Holds a lot of shared definition
-./models(lib) - Stores models of json objects (helps with compilation times)
+[server](/server/README.md) (bin) - The server, runs in the background and receive commands from clients.  
+[cli](/cli/README.md) (bin) - The CLI client  
+[tui](/tui/README.md) (bin) - The TUI client  
+[gui](/gui/README.md) (bin) - The GUI client  
+[client](./client) (lib) - Helps creating new clients  
+[shared](/shared/README.md) (lib) - Holds a lot of shared definition  
+[models](./models) (lib) - Stores models of json objects (helps with compilation times)  
 
 ## Installation
 
