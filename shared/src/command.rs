@@ -8,6 +8,7 @@ pub enum Command {
 pub enum PlayerCommand {
     Play,
     Pause,
+    GetPlayState,
 
     GetCurrentlyPlaying,
 
