@@ -47,8 +47,8 @@
         - [ ] ? Playlist manager
 
 - [ ] GUI
-    - [ ] Basic control / comunication stuff
+    - [x] Basic control / comunication stuff
     - [ ] Interface
-        - [ ] Player
-        - [ ] Downloader
+        - [WIP] Player
+        - [WIP] Downloader
         - [ ] ? Playlist manager
