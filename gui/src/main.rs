@@ -16,14 +16,42 @@ enum Tab {
     MusicPlayer,
     Downloads,
 }
-struct Interface {
-    client: client::App,
+struct Interface<'c> {
+    client: &'c mut client::App,
     current_tab: Tab,
+
+    music_player_last_udpate_request: std::time::Instant,
+    ping: std::time::Duration,
 }
 
-impl Interface {
-    fn new(_cc: &eframe::CreationContext) -> Self {
-        let mut client = client::App::default();
+impl<'c> Interface<'c> {
+    fn new(client: &'c mut client::App, _cc: &eframe::CreationContext) -> Self {
+        let ping_base = std::time::Instant::now();
+        client
+            .socket_mut()
+            .send(shared::message::ClientMessage::Ping)
+            .unwrap();
+
+        debug!("Pinging");
+        loop {
+            match client.socket_mut().try_recv() {
+                Ok((_h, shared::message::ServerMessage::Pong)) => break,
+                Ok((_h, msg)) => {
+                    client.handle_server_message(msg).unwrap();
+                }
+                Err(e) => {
+                    if let shared::error::SocketError::StreamRead(ref io) = e
+                        && io.kind() == std::io::ErrorKind::WouldBlock
+                    {
+                        continue;
+                    }
+                    error!("{e}")
+                }
+            }
+        }
+        let ping = ping_base.elapsed();
+        debug!("Estimated ping: {:.3}ms", ping.as_secs_f32() / 1000.);
+
         client
             .socket_mut()
             .send(shared::message::ClientMessage::Command(
@@ -54,11 +82,13 @@ impl Interface {
         Self {
             client,
             current_tab: Tab::MusicPlayer,
+            music_player_last_udpate_request: std::time::Instant::now(),
+            ping,
         }
     }
 }
 
-impl Interface {
+impl<'c> Interface<'c> {
     fn render_title_bar(
         &mut self,
         ui: &mut egui::Ui,
@@ -170,12 +200,21 @@ impl Interface {
 
         if self.client.player_data().playing {
             ectx.request_repaint();
-            to_send.push(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::GetPosition.into(),
-            ));
-            to_send.push(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::GetPlayState.into(),
-            ));
+
+            if self
+                .music_player_last_udpate_request
+                .elapsed()
+                .as_secs_f32()
+                > self.ping.as_secs_f32() * 1.1
+            {
+                self.music_player_last_udpate_request = std::time::Instant::now();
+                to_send.push(shared::message::ClientMessage::Command(
+                    shared::command::PlayerCommand::GetPosition.into(),
+                ));
+                to_send.push(shared::message::ClientMessage::Command(
+                    shared::command::PlayerCommand::GetPlayState.into(),
+                ));
+            }
         }
 
         ui.horizontal(|ui| {
@@ -207,7 +246,9 @@ impl Interface {
                             )
                             .text("seconds"),
                         );
-                        if p != self.client.player_data().position.as_secs_f32() && self.client.player_data().playing{
+                        if p != self.client.player_data().position.as_secs_f32()
+                            && self.client.player_data().playing
+                        {
                             to_send.push(shared::message::ClientMessage::Command(
                                 shared::command::PlayerCommand::SetPosition(
                                     Duration::from_secs_f32(p),
@@ -231,6 +272,7 @@ impl Interface {
                         };
                         to_send.push(shared::message::ClientMessage::Command(cmd.into()));
                         ectx.request_repaint();
+                        ectx.request_repaint_after(std::time::Duration::from_secs_f32(1.));
                     }
                 } else {
                     ui.label("Select a song from the sidebar.");
@@ -263,7 +305,7 @@ impl Interface {
                     self.client.downloader_data_mut().new_download_url.clear(); // Clear the input field
                 }
             });
-            
+
             // Display download queue
             for download in self
                 .client
@@ -287,7 +329,6 @@ impl Interface {
                 //     }
                 // });
             }
-            
         });
 
         for msg in to_send.into_iter() {
@@ -298,10 +339,10 @@ impl Interface {
     }
 }
 
-impl eframe::App for Interface {
+impl<'c> eframe::App for Interface<'c> {
     fn update(&mut self, ectx: &egui::Context, _frame: &mut eframe::Frame) {
         // Update the current position if playing
-        if self.client.update() > 0{
+        if self.client.update() > 0 {
             // std::thread::sleep_ms(500);
             ectx.request_repaint();
         }
@@ -385,6 +426,7 @@ fn main() -> Result<(), eframe::Error> {
             ])
             .colored(true),
     );
+    let mut client = client::App::default();
 
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
@@ -397,8 +439,7 @@ fn main() -> Result<(), eframe::Error> {
     };
 
     eframe::run_native(
-        "RMP Gui",
-        options,
-        Box::new(|cc| Ok(Box::new(Interface::new(cc)))),
+        "RMP Gui", options,
+        Box::new(|cc| Ok(Box::new(Interface::new(&mut client, cc)))),
     )
 }
