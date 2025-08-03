@@ -1,4 +1,4 @@
-# Terminal user interface for RMP
+# Graphical user interface for RMP
 
 ## Direction
 
