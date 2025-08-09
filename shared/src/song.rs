@@ -75,10 +75,10 @@ impl Metadata {
     pub fn duration(&self) -> &std::time::Duration {
         &self.duration
     }
-    pub fn write_to_file(&self, uuid: uuid::Uuid) -> Result<(), crate::error::ImporterError> {
+    pub fn write_to_file(&self, uuid: uuid::Uuid, songs_path: std::path::PathBuf) -> Result<(), crate::error::ImporterError> {
         use std::fs::OpenOptions;
         let path = {
-            let mut p = super::path::songs_path();
+            let mut p = songs_path;
             p.push(format!("{uuid}.metadata"));
             p
         };
@@ -101,6 +101,7 @@ impl Metadata {
 ///
 pub fn convert_local(
     local_file_path: std::path::PathBuf,
+    // TODO: rename this to something closer to local library path, with #11
     local_storage_path: std::path::PathBuf,
 ) -> Option<Song> {
     use rodio::{decoder::Decoder, Source};
@@ -159,7 +160,7 @@ pub fn convert_local(
 
     let metadata = Metadata::new(local_file_name.clone(), duration);
     metadata
-        .write_to_file(uuid)
+        .write_to_file(uuid, local_storage_path.clone())
         .map_err(|e| {
             error!("Failed to write metadata due to: {e}");
         })

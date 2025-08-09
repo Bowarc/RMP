@@ -1,5 +1,6 @@
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Command {
+    GetLibrary,
     Player(PlayerCommand),
     Downloader(DownloaderCommand),
 }

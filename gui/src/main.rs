@@ -438,8 +438,12 @@ fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
 
-    eframe::run_native(
+    let gui_res=  eframe::run_native(
         "RMP Gui", options,
         Box::new(|cc| Ok(Box::new(Interface::new(&mut client, cc)))),
-    )
+    );
+
+    client.exit();
+    
+    gui_res
 }

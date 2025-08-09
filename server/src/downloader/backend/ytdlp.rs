@@ -50,7 +50,7 @@ pub fn start(
         panic!("Playlists are not supported right now");
     }
 
-    let song_dir = shared::path::songs_path().display().to_string();
+    let song_dir = crate::config::songs_path().display().to_string();
 
     let uuid = uuid::Uuid::new_v4();
 
@@ -176,7 +176,7 @@ pub fn start(
         // we *should* have a {uuid}.info.json file
         // Let's parse that.
         let json_info_path = {
-            let mut p = shared::path::songs_path();
+            let mut p = crate::config::songs_path();
             p.push(format!("{uuid}.info.json"));
             p
         };
@@ -205,16 +205,16 @@ pub fn start(
 
         let metadata = shared::song::Metadata::new(json_info.title, std::time::Duration::from_secs_f64(json_info.duration));
 
-        metadata.write_to_file(uuid).unwrap();
+        metadata.write_to_file(uuid, crate::config::songs_path()).unwrap();
 
         // Aaaand remove the the extension from the output file
 
         std::fs::rename({
-            let mut p = shared::path::songs_path();
+            let mut p = cfg.song_path.clone();
             p.push(format!("{uuid}.mp3"));
             p
         }, {
-            let mut p = shared::path::songs_path();
+            let mut p = cfg.song_path.clone();
             p.push(uuid.as_hyphenated().to_string());
             p
         }).unwrap();

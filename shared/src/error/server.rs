@@ -10,7 +10,12 @@ pub enum Error {
     Socket(String),
 
     #[error(transparent)]
-    Downloader(#[from] DownloaderError)
+    Downloader(#[from] DownloaderError),
+
+    #[error("{0}")]
+    Io(String)
+
+    
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]

@@ -1,5 +1,5 @@
 pub fn cmd() -> clap::Command {
-    use clap::{arg, Command};
+    use clap::{Command, arg};
 
     Command::new("CLI client")
         .about("CLI client for RMP")
@@ -143,7 +143,13 @@ pub fn cmd() -> clap::Command {
                 Command::new("start")
                     .arg(arg!(<URL> "The url used for the download, must be youtube.com/"))
                     .arg_required_else_help(true)
-                    // .value_parser(|v| )
+                )
+            .arg_required_else_help(true)
+        )
+        .subcommand(
+            Command::new("library").alias("lib")
+            .subcommand(
+                Command::new("get")
                 )
             .arg_required_else_help(true)
         )

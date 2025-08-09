@@ -57,7 +57,9 @@ impl App {
                 self.player_data.current_device = device_name
             }
             ServerMessage::Position(position) => self.player_data.position = position,
+            ServerMessage::Library(songs) => self.player_data.song_list = songs,
             ServerMessage::Error(error) => return Ok(Some(error)),
+
             _ => debug!("Unhandled message: {message:?}"),
         }
         Ok(None)
@@ -83,6 +85,11 @@ impl App {
     }
     pub fn downloader_data_mut(&mut self) -> &mut data::DownloaderData {
         &mut self.downloader_data
+    }
+    pub fn exit(&mut self) {
+        if let Err(e) = self.socket.send(shared::message::ClientMessage::Exit) {
+            error!("Failed to send exit message to server due to: {e}");
+        }
     }
 }
 

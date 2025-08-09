@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-
 mod cmd_parser;
 mod commands;
 
@@ -25,7 +24,7 @@ fn main() {
             )),
     ]);
 
-    let mut socket= shared::socket::new().unwrap();
+    let mut socket = shared::socket::new().unwrap();
 
     match cmd_parser::cmd().get_matches().subcommand() {
         Some(("player", args)) => match args.subcommand() {
@@ -147,10 +146,26 @@ fn main() {
                 _ => unimplemented!(),
             }
         }
+        Some(("library", args)) => match args.subcommand() {
+            Some(("get", _args)) => {
+                let songs = commands::get_library(&mut socket);
+                println!(
+                    "{}",
+                    songs.iter().fold(String::new(), |s, song| {
+                        format!(
+                            "{s}\n{} - {}",
+                            time::format(song.metadata().duration(), 3),
+                            song.metadata().title()
+                        )
+                    })
+                )
+            }
+            _ => unimplemented!(),
+        },
         _ => unimplemented!(),
     }
 
     // shared::song::convert_local("D:/dev/rust/projects/rmp/songs/", "D:/dev/rust/projects/rmp/songs/")
 
-    socket.shutdown();
+    socket.send(shared::message::ClientMessage::Exit).unwrap();
 }

@@ -29,6 +29,10 @@ pub enum ServerMessage {
 
     // downloader
     Error(crate::error::server::Error),
+
+    // others
+    Library(Vec<crate::song::Song>)
+    
 }
 
 impl networking::Message for ClientMessage {

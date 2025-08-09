@@ -1,6 +1,8 @@
 // Not a big fan of oop but let's try and we'll see later it that causes a problem
 // Wasn't long lmao
 
+use std::str::FromStr;
+
 pub fn recv_commands(
     socket_opt: &mut Option<
         networking::Socket<shared::message::ClientMessage, shared::message::ServerMessage>,
@@ -47,6 +49,46 @@ pub fn recv_commands(
                     }
                 }
                 Command::Downloader(dc) => handle_downloader_command(socket, download_mgr, dc),
+                Command::GetLibrary => {
+                    let songs_path = crate::config::songs_path();
+
+                    let read_dir = match std::fs::read_dir(songs_path) {
+                        Ok(rd) => rd,
+                        Err(e) => {
+                            error!("Failed to read songs dir due to: {e}");
+                            if let Err(e) = socket.send(ServerMessage::Error(
+                                shared::error::server::Error::Io(e.to_string()),
+                            )) {
+                                error!("Failed to send error to client due to: {e}");
+                            }
+                            return;
+                        }
+                    };
+
+                    let songs = read_dir
+                        .into_iter()
+                        .flatten()
+                        .filter(|item| {
+                            item.file_type().is_ok() && item.file_type().unwrap().is_file()
+                        })
+                        .filter(|item| item.file_name().to_string_lossy().ends_with(".metadata"))
+                        .flat_map(|item| {
+                            shared::song::Song::load(
+                                uuid::Uuid::from_str(
+                                    &item.file_name().to_string_lossy().replace(".metadata", ""),
+                                )
+                                .unwrap(),
+                                &crate::config::songs_path(),
+                            )
+                        })
+                        .collect::<Vec<_>>();
+
+                    debug!("{songs:?}");
+                    if let Err(e) = socket.send(ServerMessage::Library(songs)) {
+                        error!("Failed to send library to client due to: {e}");
+                        return;
+                    }
+                }
             },
             ClientMessage::Ping => {
                 if let Err(e) = socket.send(ServerMessage::Pong) {
@@ -180,7 +222,10 @@ pub fn handle_downloader_command(
             //     }
             // }
 
-            download_mgr.push(crate::downloader::DownloadConfig { url });
+            download_mgr.push(crate::downloader::DownloadConfig {
+                url,
+                song_path: crate::config::songs_path(),
+            });
         }
         DownloaderCommand::StopCurrentDownload => unimplemented!(),
         DownloaderCommand::FetchCurrent => unimplemented!(),

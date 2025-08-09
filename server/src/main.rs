@@ -12,17 +12,27 @@ use shared::error::server as error;
 const TARGET_TPS: f32 = 10.;
 
 fn main() {
-    logger::init(
+    let filters = &[
+        ("symphonia_core", log::LevelFilter::Off),
+        ("symphonia_bundle_mp3", log::LevelFilter::Off),
+        ("selectors", log::LevelFilter::Off),
+        ("reqwest", log::LevelFilter::Off),
+        ("html5ever", log::LevelFilter::Off),
+        ("networking", log::LevelFilter::Debug),
+    ];
+    use std::str::FromStr as _;
+    logger::init([
         logger::Config::default()
             .output(logger::Output::Stdout)
-            .filter("symphonia_core", log::LevelFilter::Off)
-            .filter("symphonia_bundle_mp3", log::LevelFilter::Off)
-            .filter("selectors", log::LevelFilter::Off)
-            .filter("reqwest", log::LevelFilter::Off)
-            .filter("html5ever", log::LevelFilter::Off)
-            .filter("networking", log::LevelFilter::Debug)
-            .colored(true),
-    );
+            .colored(true)
+            .filters(filters),
+        logger::Config::default()
+            .output(logger::Output::File(
+                std::path::PathBuf::from_str("./log/server.log").unwrap(),
+            ))
+            .colored(true)
+            .filters(filters),
+    ]);
 
     let stopwatch = time::Stopwatch::start_new();
 
@@ -64,7 +74,7 @@ fn main() {
             stream.set_nonblocking(true).unwrap();
             socket_opt = Some(networking::Socket::new(stream));
         }
-        
+
         if let Err(e) = music_player.update() {
             error!("An error occured while updating the music player: {e}");
             if let Some(socket) = &mut socket_opt {
@@ -94,6 +104,6 @@ fn main() {
 
     debug!(
         "Stopping loop. The server ran {}",
-        time::format(stopwatch.read(), 3)
+        time::format(&stopwatch.read(), 3)
     );
 }
