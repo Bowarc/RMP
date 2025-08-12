@@ -55,6 +55,13 @@ impl<'c> Interface<'c> {
         client
             .socket_mut()
             .send(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::GetVolume.into(),
+            ))
+            .unwrap();
+
+        client
+            .socket_mut()
+            .send(shared::message::ClientMessage::Command(
                 shared::command::PlayerCommand::AddToQueue(
                     uuid::Uuid::from_str("4c40abd6-f2ed-47f8-9e6e-b235a8980835").unwrap(),
                 )
@@ -206,7 +213,7 @@ impl<'c> Interface<'c> {
         let mut to_send = Vec::new();
 
         if self.client.player_data().playing {
-            ectx.request_repaint();
+            // ectx.request_repaint();
 
             if self
                 .music_player_last_udpate_request
@@ -262,21 +269,41 @@ impl<'c> Interface<'c> {
                     ui.horizontal(|ui| {
                         ui.label("Position:");
                         let mut p = self.client.player_data().position.as_secs_f32();
-                        ui.add(
+                        let resp = ui.add(
                             egui::Slider::new(
                                 &mut p,
                                 0.0..=song.metadata().duration().as_secs_f32(),
                             )
                             .text("seconds"),
                         );
-                        if p != self.client.player_data().position.as_secs_f32()
-                            && self.client.player_data().playing
-                        {
+                        if
+                        resp.changed()
+
+                        // p != self.client.player_data().position.as_secs_f32()
+
+                             && self.client.player_data().playing {
                             to_send.push(shared::message::ClientMessage::Command(
                                 shared::command::PlayerCommand::SetPosition(
                                     Duration::from_secs_f32(p),
                                 )
                                 .into(),
+                            ));
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Volume:");
+                        let display_mul = 100.;
+                        let mut p = (self.client.player_data().volume * display_mul) as u16;
+                        let resp = ui.add(
+                            egui::Slider::new(&mut p, 0..=100)
+                                .step_by(1.)
+                                .text("seconds"),
+                        );
+                        if resp.changed() {
+                            debug!("Changed ! ");
+                            to_send.push(shared::message::ClientMessage::Command(
+                                shared::command::PlayerCommand::SetVolume(p as f32 / display_mul)
+                                    .into(),
                             ));
                         }
                     });
