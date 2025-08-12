@@ -20,6 +20,7 @@ fn client_timeout(
             // SAFETY: Absolutely no safety here, but since i don't use threads for now, it's good
 
             LAST_RECEIVED_TIME = Some(std::time::Instant::now());
+            PING_SENT = false;
         }
     }
 
@@ -35,6 +36,8 @@ fn client_timeout(
             .as_mut()
             .unwrap()
             .send(shared::message::ServerMessage::Ping);
+        unsafe{PING_SENT = true};
+        return;
     }
 
     if unsafe { PING_SENT }
