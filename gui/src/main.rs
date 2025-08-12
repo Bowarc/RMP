@@ -79,6 +79,13 @@ impl<'c> Interface<'c> {
                 shared::command::PlayerCommand::GetPlayState.into(),
             ))
             .unwrap();
+        client
+            .socket_mut()
+            .send(shared::message::ClientMessage::Command(
+                shared::command::Command::GetLibrary,
+            ))
+            .unwrap();
+
         Self {
             client,
             current_tab: Tab::MusicPlayer,
@@ -224,8 +231,24 @@ impl<'c> Interface<'c> {
                 ui.label("Songs");
                 for song in self.client.player_data().song_list.iter() {
                     if ui.button(song.metadata().title()).clicked() {
+                        if self.client.player_data().playing {
+                            to_send.push(shared::message::ClientMessage::Command(
+                                shared::command::PlayerCommand::ClearQueue.into(),
+                            ));
+                        }
+
                         to_send.push(shared::message::ClientMessage::Command(
-                            shared::command::PlayerCommand::ClearQueue.into(),
+                            shared::command::PlayerCommand::AddToQueue(song.uuid()).into(),
+                        ));
+
+                        to_send.push(shared::message::ClientMessage::Command(
+                            shared::command::PlayerCommand::Play.into(),
+                        ));
+                        to_send.push(shared::message::ClientMessage::Command(
+                            shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
+                        ));
+                        to_send.push(shared::message::ClientMessage::Command(
+                            shared::command::PlayerCommand::GetPlayState.into(),
                         ));
                     }
                 }
@@ -342,10 +365,12 @@ impl<'c> Interface<'c> {
 impl<'c> eframe::App for Interface<'c> {
     fn update(&mut self, ectx: &egui::Context, _frame: &mut eframe::Frame) {
         // Update the current position if playing
-        if self.client.update() > 0 {
-            // std::thread::sleep_ms(500);
-            ectx.request_repaint();
-        }
+
+        self.client.update();
+        // if self.client.update() > 0 {
+        // std::thread::sleep_ms(500);
+        ectx.request_repaint();
+        // }
 
         egui::CentralPanel::default()
             .frame(
@@ -438,12 +463,13 @@ fn main() -> Result<(), eframe::Error> {
         ..Default::default()
     };
 
-    let gui_res=  eframe::run_native(
-        "RMP Gui", options,
+    let gui_res = eframe::run_native(
+        "RMP Gui",
+        options,
         Box::new(|cc| Ok(Box::new(Interface::new(&mut client, cc)))),
     );
 
     client.exit();
-    
+
     gui_res
 }

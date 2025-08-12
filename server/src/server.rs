@@ -3,6 +3,50 @@
 
 use std::str::FromStr;
 
+fn client_timeout(
+    msg_received_this_tick: bool,
+
+    socket_opt: &mut Option<
+        networking::Socket<shared::message::ClientMessage, shared::message::ServerMessage>,
+    >,
+) {
+    static mut LAST_RECEIVED_TIME: Option<std::time::Instant> = None;
+    const MAX_SILENT_TIME: std::time::Duration = std::time::Duration::from_secs(5);
+    const MAX_PING: std::time::Duration = std::time::Duration::from_secs(1);
+    static mut PING_SENT: bool = false;
+
+    if msg_received_this_tick {
+        unsafe {
+            // SAFETY: Absolutely no safety here, but since i don't use threads for now, it's good
+
+            LAST_RECEIVED_TIME = Some(std::time::Instant::now());
+        }
+    }
+
+    // SAFETY: tkt
+    #[allow(static_mut_refs)]
+    if unsafe { LAST_RECEIVED_TIME.is_none() } {
+        return;
+    }
+
+    if unsafe { !PING_SENT } && unsafe { LAST_RECEIVED_TIME.unwrap().elapsed() > MAX_SILENT_TIME } {
+        debug!("Havn't heard from the client in a while, let's ping it");
+        let _ = socket_opt
+            .as_mut()
+            .unwrap()
+            .send(shared::message::ServerMessage::Ping);
+    }
+
+    if unsafe { PING_SENT }
+        && unsafe { LAST_RECEIVED_TIME.unwrap().elapsed() > MAX_PING + MAX_SILENT_TIME }
+    {
+        warn!("Client did not respond to the ping, cutting the wire");
+        let mut s = socket_opt.take().unwrap();
+        let _ = s.send(shared::message::ServerMessage::Exit);
+        unsafe { LAST_RECEIVED_TIME = None };
+    }
+}
+
 pub fn recv_commands(
     socket_opt: &mut Option<
         networking::Socket<shared::message::ClientMessage, shared::message::ServerMessage>,
@@ -23,6 +67,7 @@ pub fn recv_commands(
         return;
     };
 
+    let mut msg_received_this_tick = false;
     loop {
         let (_header, cm) = match socket.try_recv() {
             Ok(h_m) => h_m,
@@ -38,6 +83,8 @@ pub fn recv_commands(
                 break;
             }
         };
+
+        msg_received_this_tick = true;
 
         info!("Received a message from socket: {cm:?}");
 
@@ -99,6 +146,8 @@ pub fn recv_commands(
             ClientMessage::Exit => unreachable!(),
         }
     }
+
+    client_timeout(msg_received_this_tick, socket_opt);
 }
 
 pub fn handle_player_command(
