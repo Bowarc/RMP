@@ -49,6 +49,16 @@
 - [ ] GUI
     - [x] Basic control / comunication stuff
     - [ ] Interface
-        - [WIP] Player
-        - [WIP] Downloader
+        - [ ] Player
+            - [x] Play/Pause
+            - [x] Get currently playing song
+            - [ ] Push music to queue (currently song requests are replacing the queue)
+            - [ ] Get music queue
+            - [ ] Clear music queue
+            - [x] Get/Set volume
+            - [x] Get/Set current song's seek status + updates
+            - [ ] Get/Set Audio device
+        - [ ] Downloader
+            - [x] Add a download to queue
+            - [ ] Everything else
         - [ ] ? Playlist manager

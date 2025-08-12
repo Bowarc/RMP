@@ -4,7 +4,7 @@ A music player with interchangeable clients
 
 ## Goal
 
-Not relying on big platforms or even an internet connection to listen to store, organise and play music.
+Not relying on big platforms or even an internet connection to store, organise and listen to music.
 
 And being able to control the music server with whatever client im more confortable using in the moment.  
 TUI or GUI most of the time, but cli is nice to have for scripting or occasional commands
@@ -13,20 +13,21 @@ TUI or GUI most of the time, but cli is nice to have for scripting or occasional
 Still in very early phase of dev.
 
 - Server
-    Rodio player is working well
+    Rodio player is working well  
     Basic downloader done, need to clean it up a bit
 - Cli
   Closely follows what the server is capable of
 - Tui
   Not yet started
 - Gui
-  Not yet started
+  Player is working, most of the features are implemented but the interface is still very ugly  
+  Downloader technically works, but there is no feedback so library is not updated after download has ended
 
 Check the [Roadmap](./roadmap.md) for precise information
 
 ## Notes
 The current implementation of the downloader uses a Unix specific implementation of non blocking pipes, so the project doesn't compile on W$ for now (see [#7](https://github.com/bowarc/rmp/issues/7)).  
-I currently use ytdlp as the backend for the downloader, but it's not too tightly integrated, so change is possible
+I currently use ytdlp as the backend for the downloader, but it's not too tightly integrated, so change is still possible
 
 ## Project structure
 [server](/server/README.md) (bin) - The server, runs in the background and receive commands from clients.  
