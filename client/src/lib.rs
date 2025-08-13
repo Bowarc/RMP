@@ -1,4 +1,4 @@
-#[macro_use(debug, error)]
+#[macro_use(trace, debug, error)]
 extern crate log;
 
 mod data;
@@ -63,6 +63,19 @@ impl App {
             _ => debug!("Unhandled message: {message:?}"),
         }
         Ok(None)
+    }
+
+    pub fn send_multiple(
+        &mut self,
+        messages: Vec<shared::message::ClientMessage>,
+    ) -> Result<(), shared::error::SocketError> {
+        let socket = self.socket_mut();
+        for msg in messages.into_iter() {
+            trace!("Sending: {msg:?}");
+            socket.send(msg)?;
+        }
+
+        Ok(())
     }
 }
 

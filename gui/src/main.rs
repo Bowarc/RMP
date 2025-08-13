@@ -52,46 +52,27 @@ impl<'c> Interface<'c> {
         let ping = ping_base.elapsed();
         debug!("Estimated ping: {:.3}ms", ping.as_secs_f32() / 1000.);
 
-        client
-            .socket_mut()
-            .send(shared::message::ClientMessage::Command(
+        if let Err(e) = client.send_multiple(vec![
+            shared::message::ClientMessage::Command(
                 shared::command::PlayerCommand::GetVolume.into(),
-            ))
-            .unwrap();
-
-        client
-            .socket_mut()
-            .send(shared::message::ClientMessage::Command(
+            ),
+            shared::message::ClientMessage::Command(
                 shared::command::PlayerCommand::AddToQueue(
                     uuid::Uuid::from_str("4c40abd6-f2ed-47f8-9e6e-b235a8980835").unwrap(),
                 )
                 .into(),
-            ))
-            .unwrap();
-        client
-            .socket_mut()
-            .send(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::Play.into(),
-            ))
-            .unwrap();
-        client
-            .socket_mut()
-            .send(shared::message::ClientMessage::Command(
+            ),
+            shared::message::ClientMessage::Command(shared::command::PlayerCommand::Play.into()),
+            shared::message::ClientMessage::Command(
                 shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
-            ))
-            .unwrap();
-        client
-            .socket_mut()
-            .send(shared::message::ClientMessage::Command(
+            ),
+            shared::message::ClientMessage::Command(
                 shared::command::PlayerCommand::GetPlayState.into(),
-            ))
-            .unwrap();
-        client
-            .socket_mut()
-            .send(shared::message::ClientMessage::Command(
-                shared::command::Command::GetLibrary,
-            ))
-            .unwrap();
+            ),
+            shared::message::ClientMessage::Command(shared::command::Command::GetLibrary),
+        ]) {
+            error!("Failed to send an init message due to: {e}");
+        }
 
         Self {
             client,
@@ -276,12 +257,12 @@ impl<'c> Interface<'c> {
                             )
                             .text("seconds"),
                         );
-                        if
-                        resp.changed()
+                        if resp.changed()
 
                         // p != self.client.player_data().position.as_secs_f32()
 
-                             && self.client.player_data().playing {
+                             && self.client.player_data().playing
+                        {
                             to_send.push(shared::message::ClientMessage::Command(
                                 shared::command::PlayerCommand::SetPosition(
                                     Duration::from_secs_f32(p),
@@ -330,11 +311,8 @@ impl<'c> Interface<'c> {
             });
         });
 
-        for msg in to_send.into_iter() {
-            debug!("Sending: {msg:?}");
-            if let Err(e) = self.client.socket_mut().send(msg.clone()) {
-                error!("Failed to send {msg:?} due to: {e}");
-            }
+        if let Err(e) = self.client.send_multiple(to_send) {
+            error!("Failed to send a player message due to: {e}");
         }
     }
     fn downloader_tab(&mut self, ui: &mut egui::Ui, ectx: &egui::Context) {
@@ -381,10 +359,8 @@ impl<'c> Interface<'c> {
             }
         });
 
-        for msg in to_send.into_iter() {
-            if let Err(e) = self.client.socket_mut().send(msg.clone()) {
-                error!("Failed to send {msg:?} due to: {e}");
-            }
+        if let Err(e) = self.client.send_multiple(to_send) {
+            error!("Failed to send a downloader message due to: {e}");
         }
     }
 }
@@ -436,13 +412,29 @@ impl<'c> eframe::App for Interface<'c> {
                             if ui.button("Downloads").clicked() {
                                 self.current_tab = Tab::Downloads;
                             }
+
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                let mut p = self.ping.as_millis() as u64;
+
+                                let resp = ui.add(
+                                    egui::DragValue::new(&mut p)
+                                        .range(30..=500)
+                                        .speed(5)
+                                        .prefix("Polling rate: "),
+                                );
+                                if resp.changed() {
+                                    self.ping = std::time::Duration::from_millis(p);
+                                }
+                            })
                         });
                     });
 
                 let unallocated_size = {
+                    const TAB_SELECT_PADDING: f32 = 10.;
                     let mut rect = unallocated_size;
                     rect.min.y = unallocated_size.min.y
-                        + (tab_bar.response.rect.max.y - tab_bar.response.rect.min.y);
+                        + (tab_bar.response.rect.max.y - tab_bar.response.rect.min.y)
+                        + TAB_SELECT_PADDING;
                     rect
                 }
                 .shrink(4.0);

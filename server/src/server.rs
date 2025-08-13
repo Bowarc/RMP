@@ -11,7 +11,7 @@ fn client_timeout(
     >,
 ) {
     static mut LAST_RECEIVED_TIME: Option<std::time::Instant> = None;
-    const MAX_SILENT_TIME: std::time::Duration = std::time::Duration::from_secs(5);
+    const MAX_SILENT_TIME: std::time::Duration = std::time::Duration::from_secs(1);
     const MAX_PING: std::time::Duration = std::time::Duration::from_secs(1);
     static mut PING_SENT: bool = false;
 
