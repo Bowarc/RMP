@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate log;
 
-use std::str::FromStr;
+use std::{f32, str::FromStr};
 
 use eframe::egui;
 
@@ -21,48 +21,22 @@ struct Interface<'c> {
     current_tab: Tab,
 
     music_player_last_udpate_request: std::time::Instant,
-    ping: std::time::Duration,
+    polling_rate: std::time::Duration,
 }
 
 impl<'c> Interface<'c> {
     fn new(client: &'c mut client::App, _cc: &eframe::CreationContext) -> Self {
-        let ping_base = std::time::Instant::now();
-        client
-            .socket_mut()
-            .send(shared::message::ClientMessage::Ping)
-            .unwrap();
-
-        debug!("Pinging");
-        loop {
-            match client.socket_mut().try_recv() {
-                Ok((_h, shared::message::ServerMessage::Pong)) => break,
-                Ok((_h, msg)) => {
-                    client.handle_server_message(msg).unwrap();
-                }
-                Err(e) => {
-                    if let shared::error::SocketError::StreamRead(ref io) = e
-                        && io.kind() == std::io::ErrorKind::WouldBlock
-                    {
-                        continue;
-                    }
-                    error!("{e}")
-                }
-            }
-        }
-        let ping = ping_base.elapsed();
-        debug!("Estimated ping: {:.3}ms", ping.as_secs_f32() / 1000.);
-
         if let Err(e) = client.send_multiple(vec![
             shared::message::ClientMessage::Command(
                 shared::command::PlayerCommand::GetVolume.into(),
             ),
-            shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::AddToQueue(
-                    uuid::Uuid::from_str("4c40abd6-f2ed-47f8-9e6e-b235a8980835").unwrap(),
-                )
-                .into(),
-            ),
-            shared::message::ClientMessage::Command(shared::command::PlayerCommand::Play.into()),
+            // shared::message::ClientMessage::Command(
+            //     shared::command::PlayerCommand::AddToQueue(
+            //         uuid::Uuid::from_str("4c40abd6-f2ed-47f8-9e6e-b235a8980835").unwrap(),
+            //     )
+            //     .into(),
+            // ),
+            // shared::message::ClientMessage::Command(shared::command::PlayerCommand::Play.into()),
             shared::message::ClientMessage::Command(
                 shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
             ),
@@ -74,11 +48,12 @@ impl<'c> Interface<'c> {
             error!("Failed to send an init message due to: {e}");
         }
 
+        let ping = client.ping().clone();
         Self {
             client,
             current_tab: Tab::MusicPlayer,
             music_player_last_udpate_request: std::time::Instant::now(),
-            ping,
+            polling_rate: ping,
         }
     }
 }
@@ -200,7 +175,7 @@ impl<'c> Interface<'c> {
                 .music_player_last_udpate_request
                 .elapsed()
                 .as_secs_f32()
-                > self.ping.as_secs_f32() * 1.1
+                > self.polling_rate.as_secs_f32() * 1.1
             {
                 self.music_player_last_udpate_request = std::time::Instant::now();
                 to_send.push(shared::message::ClientMessage::Command(
@@ -272,19 +247,37 @@ impl<'c> Interface<'c> {
                         }
                     });
                     ui.horizontal(|ui| {
+                        static mut POS: Option<f32> = None;
+                        const MIN_OUTPUT: f32 = 0.0;
+                        const MAX_OUTPUT: f32 = 3.0;
+
+                        #[allow(static_mut_refs)]
+                        if unsafe { POS.is_none() } {
+                            unsafe {
+                                POS = Some(
+                                    ((self.client.player_data().volume - MIN_OUTPUT)
+                                        / (MAX_OUTPUT - MIN_OUTPUT))
+                                        .sqrt(),
+                                );
+                            }
+                        }
+
+                        #[allow(static_mut_refs)]
+                        let pos = unsafe { POS.as_mut().unwrap() };
+
                         ui.label("Volume:");
-                        let display_mul = 100.;
-                        let mut p = (self.client.player_data().volume * display_mul) as u16;
                         let resp = ui.add(
-                            egui::Slider::new(&mut p, 0..=100)
-                                .step_by(1.)
-                                .text("seconds"),
+                            egui::Slider::new(pos, 0.0f32..=1f32)
+                                .step_by(0.001)
+                                .show_value(false),
                         );
+
                         if resp.changed() {
-                            debug!("Changed ! ");
                             to_send.push(shared::message::ClientMessage::Command(
-                                shared::command::PlayerCommand::SetVolume(p as f32 / display_mul)
-                                    .into(),
+                                shared::command::PlayerCommand::SetVolume(
+                                    MIN_OUTPUT + (MAX_OUTPUT - MIN_OUTPUT) * pos.powf(2.0),
+                                )
+                                .into(),
                             ));
                         }
                     });
@@ -414,7 +407,7 @@ impl<'c> eframe::App for Interface<'c> {
                             }
 
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                let mut p = self.ping.as_millis() as u64;
+                                let mut p = self.polling_rate.as_millis() as u64;
 
                                 let resp = ui.add(
                                     egui::DragValue::new(&mut p)
@@ -423,7 +416,7 @@ impl<'c> eframe::App for Interface<'c> {
                                         .prefix("Polling rate: "),
                                 );
                                 if resp.changed() {
-                                    self.ping = std::time::Duration::from_millis(p);
+                                    self.polling_rate = std::time::Duration::from_millis(p);
                                 }
                             })
                         });
@@ -470,7 +463,7 @@ fn main() -> Result<(), eframe::Error> {
             ])
             .colored(true),
     );
-    let mut client = client::App::default();
+    let mut client = client::App::init();
 
     let options = eframe::NativeOptions {
         viewport: eframe::egui::ViewportBuilder::default()
