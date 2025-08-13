@@ -271,11 +271,13 @@ impl<'c> Interface<'c> {
                                 .step_by(0.001)
                                 .show_value(false),
                         );
+                        let output = MIN_OUTPUT + (MAX_OUTPUT - MIN_OUTPUT) * pos.powf(2.0);
+                        ui.label(format!("{output:.2}"));
 
                         if resp.changed() {
                             to_send.push(shared::message::ClientMessage::Command(
                                 shared::command::PlayerCommand::SetVolume(
-                                    MIN_OUTPUT + (MAX_OUTPUT - MIN_OUTPUT) * pos.powf(2.0),
+                                    output
                                 )
                                 .into(),
                             ));
