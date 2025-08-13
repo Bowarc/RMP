@@ -1,4 +1,4 @@
-#[macro_use(trace, debug, error)]
+#[macro_use(trace, debug, info, error)]
 extern crate log;
 
 mod data;
@@ -7,9 +7,43 @@ pub struct App {
     socket: shared::Socket,
     player_data: data::MusicPlayerData,
     downloader_data: data::DownloaderData,
+    ping: std::time::Duration,
 }
 
 impl App {
+    pub fn init() -> Self {
+        let mut socket = shared::socket::new_nonblocking().unwrap();
+
+        socket.send(shared::message::ClientMessage::Ping).unwrap();
+        let ping_base = std::time::Instant::now();
+        debug!("Pinging");
+        loop {
+            match socket.try_recv() {
+                Ok((_h, shared::message::ServerMessage::Pong)) => break,
+                Ok((_h, msg)) => {
+                    info!("Ingored message: {msg:?}, received while ping checking");
+                }
+                Err(e) => {
+                    if let shared::error::SocketError::StreamRead(ref io) = e
+                        && io.kind() == std::io::ErrorKind::WouldBlock
+                    {
+                        continue;
+                    }
+                    error!("{e}")
+                }
+            }
+        }
+        let ping = ping_base.elapsed();
+        debug!("Estimated ping: {:.3}ms", ping.as_secs_f32() / 1000.);
+
+        Self {
+            socket,
+            player_data: data::MusicPlayerData::default(),
+            downloader_data: data::DownloaderData::default(),
+            ping,
+        }
+    }
+
     pub fn update(&mut self) -> usize {
         use shared::error::SocketError;
         let mut message_count = 0;
@@ -99,6 +133,10 @@ impl App {
     pub fn downloader_data_mut(&mut self) -> &mut data::DownloaderData {
         &mut self.downloader_data
     }
+    pub fn ping(&self) -> &std::time::Duration {
+        &self.ping
+    }
+
     pub fn exit(&mut self) {
         if let Err(e) = self.socket.send(shared::message::ClientMessage::Exit) {
             error!("Failed to send exit message to server due to: {e}");
@@ -106,12 +144,12 @@ impl App {
     }
 }
 
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            socket: shared::socket::new_nonblocking().unwrap(),
-            player_data: data::MusicPlayerData::default(),
-            downloader_data: data::DownloaderData::default(),
-        }
-    }
-}
+// impl Default for App {
+//     fn default() -> Self {
+//         Self {
+//             socket: shared::socket::new_nonblocking().unwrap(),
+//             player_data: data::MusicPlayerData::default(),
+//             downloader_data: data::DownloaderData::default(),
+//         }
+//     }
+// }
