@@ -82,8 +82,8 @@ pub fn recv_commands(
                 }
                 warn!("Client disconnected: ({e})");
                 *socket_opt = None;
-                // return;
-                break;
+                return;
+                // break;
             }
         };
 
