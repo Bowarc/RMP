@@ -36,7 +36,7 @@ fn client_timeout(
             .as_mut()
             .unwrap()
             .send(shared::message::ServerMessage::Ping);
-        unsafe{PING_SENT = true};
+        unsafe { PING_SENT = true };
         return;
     }
 
@@ -250,6 +250,27 @@ pub fn handle_downloader_command(
 
     match command {
         DownloaderCommand::QueueDownload(url) => {
+            const YOUTUBE_VIDEO_ID_LEN: usize = 11;
+
+            if !url.starts_with("https://youtube.com/")
+                && !url.starts_with("https://www.youtube.com/")
+                && !url.starts_with("https://music.youtube.com/")
+                && !{ url.len() == YOUTUBE_VIDEO_ID_LEN && !url.contains(['.', ':', '/']) }
+            {
+                if let Err(e) = socket.send(shared::message::ServerMessage::Error(
+                    DownloaderError::UrlParse {
+                        url,
+                        reason: String::from(
+                            "Only youtube, youtube music links or youtube video ids are allowed.",
+                        ),
+                    }
+                    .into(),
+                )) {
+                    error!("Failed to send back PlaylistNotSupported error to client due to: {e}");
+                };
+                return;
+            }
+
             if url.contains("/playlist?") || url.contains("&list=") {
                 if let Err(e) = socket.send(shared::message::ServerMessage::Error(
                     DownloaderError::PlaylistNotSupported.into(),

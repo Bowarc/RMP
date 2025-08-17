@@ -52,6 +52,13 @@ pub enum PlayerError {
 pub enum DownloaderError{
     #[error("This is a test error and shouldn't be used in any public context")]
     Test,
+    #[error("Failed to parse '{url}' due to: {reason}")]
+    UrlParse{
+        url: String,
+        reason: String,
+    },
+    #[error("The provider '{0}' is not supported")]
+    ProviderNotSupported(String),
     #[error("Playlists are not currently supported")]
     PlaylistNotSupported
 }
