@@ -252,6 +252,13 @@ pub fn parse_ytdl(output: &str) -> Result<Vec<YtdlOutput>, YtdlOutputError> {
         .flat_map(|line| {
             line.trim()
                 .split("__")
+                .map(|s| {
+                    if s.trim().contains("send: b'GET") {
+                        s.split("send: b'GET").collect::<Vec<&str>>()[0]
+                    } else {
+                        s
+                    }
+                })
                 .map(|part| part.trim())
                 .filter(|part| !part.is_empty())
                 .filter_map(|part| {
