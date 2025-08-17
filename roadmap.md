@@ -12,9 +12,9 @@
         - [x] Execute a download request
         - [x] mp3 output
         - [x] Collect and create metadata
-        - [ ] Cleanly stop a download request
+        - [ ] Cleanly stop a download
         - [ ] Clear download queue
-        - [ ] Get info about current download
+        - [x] Get info about current downloads
         - [ ] Get info about download queue
     - [ ] Local song converter
         - [x] Convert a local song to an usable format for rmp
@@ -36,7 +36,7 @@
         - [ ] Downloader
             - [x] Add a download to queue
             - [ ] Stop current download
-            - [ ] Get current download status
+            - [x] Get current download status
             - [ ] Get download queue
         - [ ] ? Playlist manager 
 - [ ] TUI

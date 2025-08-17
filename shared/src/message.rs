@@ -27,6 +27,9 @@ pub enum ServerMessage {
 
     Position(std::time::Duration),
 
+    CurrentDownloads(Vec<crate::download::Report>),
+    DownloadQueue(Vec<String>),
+
     // downloader
     Error(crate::error::server::Error),
 

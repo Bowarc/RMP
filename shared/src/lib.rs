@@ -3,6 +3,7 @@ extern crate log;
 
 pub mod command;
 pub mod socket;
+pub mod download;
 pub use socket::Socket;
 pub mod message;
 pub mod song;

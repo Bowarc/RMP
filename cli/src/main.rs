@@ -143,6 +143,10 @@ fn main() {
                     let url = args.get_one::<String>("URL").unwrap(); // TODO: Take care of this one
                     commands::downloader::download(&mut socket, url.to_owned());
                 }
+                Some(("report", _args)) => {
+                    let reports = commands::downloader::fetch_current(&mut socket);
+                    println!("{reports:#?}");
+                }
                 _ => unimplemented!(),
             }
         }
@@ -164,8 +168,6 @@ fn main() {
         },
         _ => unimplemented!(),
     }
-
-    // shared::song::convert_local("D:/dev/rust/projects/rmp/songs/", "D:/dev/rust/projects/rmp/songs/")
 
     socket.send(shared::message::ClientMessage::Exit).unwrap();
 }

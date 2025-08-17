@@ -143,7 +143,10 @@ pub fn cmd() -> clap::Command {
                 Command::new("start")
                     .arg(arg!(<URL> "The url used for the download, must be youtube.com/"))
                     .arg_required_else_help(true)
-                )
+            )
+            .subcommand(
+                Command::new("report")
+            )
             .arg_required_else_help(true)
         )
         .subcommand(

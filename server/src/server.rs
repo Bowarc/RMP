@@ -246,7 +246,9 @@ pub fn handle_downloader_command(
     download_mgr: &mut crate::downloader::DownloadManager,
     command: shared::command::DownloaderCommand,
 ) {
-    use shared::{command::DownloaderCommand, error::server::DownloaderError};
+    use shared::{
+        command::DownloaderCommand, error::server::DownloaderError, message::ServerMessage,
+    };
 
     match command {
         DownloaderCommand::QueueDownload(url) => {
@@ -257,7 +259,7 @@ pub fn handle_downloader_command(
                 && !url.starts_with("https://music.youtube.com/")
                 && !{ url.len() == YOUTUBE_VIDEO_ID_LEN && !url.contains(['.', ':', '/']) }
             {
-                if let Err(e) = socket.send(shared::message::ServerMessage::Error(
+                if let Err(e) = socket.send(ServerMessage::Error(
                     DownloaderError::UrlParse {
                         url,
                         reason: String::from(
@@ -272,7 +274,7 @@ pub fn handle_downloader_command(
             }
 
             if url.contains("/playlist?") || url.contains("&list=") {
-                if let Err(e) = socket.send(shared::message::ServerMessage::Error(
+                if let Err(e) = socket.send(ServerMessage::Error(
                     DownloaderError::PlaylistNotSupported.into(),
                 )) {
                     error!("Failed to send back PlaylistNotSupported error to client due to: {e}");
@@ -301,7 +303,12 @@ pub fn handle_downloader_command(
             });
         }
         DownloaderCommand::StopCurrentDownload => unimplemented!(),
-        DownloaderCommand::FetchCurrent => unimplemented!(),
+        DownloaderCommand::FetchCurrent => {
+            let reports = download_mgr.report_currents();
+            if let Err(e) = socket.send(ServerMessage::CurrentDownloads(reports)) {
+                error!("Failed to send download reports to client due to: {e}");
+            }
+        }
         DownloaderCommand::FetchQueue => unimplemented!(),
     }
 }

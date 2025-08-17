@@ -49,6 +49,20 @@ impl DownloadManager {
     pub fn current(&self) -> Option<&DownloadHandle> {
         self.current.as_ref()
     }
+
+    pub fn report_currents(&self) -> Vec<shared::download::Report> {
+        let mut out = Vec::new();
+
+        if let Some(handle) = &self.current {
+            out.push(shared::download::Report {
+                uuid: *handle.uuid(),
+                url: handle.url().clone(),
+                phase: handle.phase(),
+            });
+        }
+
+        out
+    }
 }
 
 impl Default for DownloadManager {

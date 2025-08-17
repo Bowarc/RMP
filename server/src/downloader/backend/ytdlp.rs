@@ -42,9 +42,10 @@ pub fn start(
         nonblock::NonBlockingReader,
         std::{
             process::{Command, Stdio},
-            sync::{Arc, atomic::AtomicU32},
+            sync::{Arc, Mutex},
         },
     };
+    let url = cfg.url.clone();
 
     if cfg.url.contains("/playlist?") {
         panic!("Playlists are not supported right now");
@@ -54,8 +55,8 @@ pub fn start(
 
     let uuid = uuid::Uuid::new_v4();
 
-    let percentage = Arc::new(AtomicU32::new(0));
-    let percentage_clone = percentage.clone();
+    let download_phase = Arc::new(Mutex::new(shared::download::Phase::Waiting));
+    let download_phase_clone = download_phase.clone();
 
     let future = threadpool.run(move || {
         let args = [
@@ -122,14 +123,17 @@ pub fn start(
                 Ok(p) => p,
                 Err(e) => {
                     error!("Failed to parse progress: {e:?}");
-                    break;
+                    handle.kill().unwrap();
+                    handle.wait().unwrap();
+                    return;
                 }
             };
 
             for progress in progresses.into_iter(){
                 match progress{
                     YtdlOutput::PreProcessing => {
-                        trace!("Pre processing")
+                        trace!("Pre processing");
+                        *download_phase.lock().unwrap() = shared::download::Phase::PreProcessing;
                     },
                     YtdlOutput::PreDownload { video_id } => {
                         trace!("Pre download phase with id: {video_id}");
@@ -147,13 +151,16 @@ pub fn start(
                         ) * 100.;
 
                         info!("Downloading\n{prcent}%, Eta: {eta:?}, Speed: {speed:?}");
-                        percentage_clone.store(prcent as u32, std::sync::atomic::Ordering::Release);
+                        *download_phase.lock().unwrap() = shared::download::Phase::Downloading { current_percentage: prcent };
+                        // percentage_clone.store(prcent as u32, std::sync::atomic::Ordering::Release);
                     },
                     YtdlOutput::EndOfVideo => {
-                        info!("END OF VIDEO")
+                        info!("END OF VIDEO");
+                        *download_phase.lock().unwrap() = shared::download::Phase::Postrocessing;
                     },
                     YtdlOutput::EndOfPlaylist => {
-                        info!("END OF PLAYLIST")
+                        info!("END OF PLAYLIST");
+                        *download_phase.lock().unwrap() = shared::download::Phase::Postrocessing;
                     },
                     YtdlOutput::PostProcessing { status } => {
                         info!("POST PROCESSING: {status}")
@@ -218,9 +225,11 @@ pub fn start(
             p.push(uuid.as_hyphenated().to_string());
             p
         }).unwrap();
+
+        *download_phase.lock().unwrap() = shared::download::Phase::Done;
     });
 
-    DownloadHandle::new(future, uuid, percentage)
+    DownloadHandle::new(future, uuid, url, download_phase_clone)
 }
 
 pub fn parse_ytdl(output: &str) -> Result<Vec<YtdlOutput>, YtdlOutputError> {
@@ -252,15 +261,9 @@ pub fn parse_ytdl(output: &str) -> Result<Vec<YtdlOutput>, YtdlOutputError> {
         .flat_map(|line| {
             line.trim()
                 .split("__")
-                .map(|s| {
-                    if s.trim().contains("send: b'GET") {
-                        s.split("send: b'GET").collect::<Vec<&str>>()[0]
-                    } else {
-                        s
-                    }
-                })
+                .flat_map(|s| s.trim().split("send: b'GET"))
                 .map(|part| part.trim())
-                .filter(|part| !part.is_empty())
+                .filter(|part| !part.is_empty() && part.starts_with('{'))
                 .filter_map(|part| {
                     from_str::<_>(&part.replace("NA", "null"))
                         .map_err(|e| error!("{e:?}\n{part}"))
