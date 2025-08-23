@@ -12,6 +12,8 @@ pub struct DownloadManager /* hate naming things like that but eh */ {
     threadpool: stp::ThreadPool,
 
     current: Option<DownloadHandle>,
+
+    old: Vec<DownloadHandle>,
 }
 
 impl DownloadManager {
@@ -25,11 +27,11 @@ impl DownloadManager {
             match current.state() {
                 stp::FutureState::Done => {
                     debug!("The current download has finished");
-                    self.current = None;
+                    self.old.push(self.current.take().unwrap());
                 }
                 stp::FutureState::Panicked => {
                     warn!("Current download failed.");
-                    self.current = None;
+                    self.old.push(self.current.take().unwrap());
                 }
                 _ => (),
             }
@@ -61,6 +63,17 @@ impl DownloadManager {
             });
         }
 
+        for handle in self.old.iter(){
+            out.push(
+                shared::download::Report{
+                    uuid: *handle.uuid(),
+                    url: handle.url().clone(),
+                    phase: handle.phase()
+                }
+                
+            )
+        }
+
         out
     }
 }
@@ -73,6 +86,7 @@ impl Default for DownloadManager {
             queue: VecDeque::new(),
             threadpool: ThreadPool::new(1), // Im not sure having threads up 24/7 is a good usage of resources lmao
             current: None,
+            old: Vec::new()
         }
     }
 }

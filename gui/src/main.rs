@@ -20,7 +20,8 @@ struct Interface<'c> {
     client: &'c mut client::App,
     current_tab: Tab,
 
-    music_player_last_udpate_request: std::time::Instant,
+    music_player_last_update_request: std::time::Instant,
+    downloader_last_update_request: std::time::Instant,
     polling_rate: std::time::Duration,
 }
 
@@ -48,11 +49,13 @@ impl<'c> Interface<'c> {
             error!("Failed to send an init message due to: {e}");
         }
 
-        let ping = client.ping().clone();
+        let ping = *client.ping();
+
         Self {
             client,
             current_tab: Tab::MusicPlayer,
-            music_player_last_udpate_request: std::time::Instant::now(),
+            music_player_last_update_request: std::time::Instant::now(),
+            downloader_last_update_request: std::time::Instant::now(),
             polling_rate: ping,
         }
     }
@@ -172,12 +175,12 @@ impl<'c> Interface<'c> {
             // ectx.request_repaint();
 
             if self
-                .music_player_last_udpate_request
+                .music_player_last_update_request
                 .elapsed()
                 .as_secs_f32()
                 > self.polling_rate.as_secs_f32() * 1.1
             {
-                self.music_player_last_udpate_request = std::time::Instant::now();
+                self.music_player_last_update_request = std::time::Instant::now();
                 to_send.push(shared::message::ClientMessage::Command(
                     shared::command::PlayerCommand::GetPosition.into(),
                 ));
@@ -276,10 +279,7 @@ impl<'c> Interface<'c> {
 
                         if resp.changed() {
                             to_send.push(shared::message::ClientMessage::Command(
-                                shared::command::PlayerCommand::SetVolume(
-                                    output
-                                )
-                                .into(),
+                                shared::command::PlayerCommand::SetVolume(output).into(),
                             ));
                         }
                     });
@@ -312,6 +312,18 @@ impl<'c> Interface<'c> {
     }
     fn downloader_tab(&mut self, ui: &mut egui::Ui, ectx: &egui::Context) {
         let mut to_send = Vec::new();
+        if self
+            .downloader_last_update_request
+            .elapsed()
+            .as_secs_f32()
+            > self.polling_rate.as_secs_f32() * 1.1
+        {
+            self.downloader_last_update_request = std::time::Instant::now();
+            to_send.push(shared::message::ClientMessage::Command(
+                shared::command::DownloaderCommand::FetchCurrent.into()
+            ));
+        }
+
         ui.group(|ui| {
             ui.label("Download Music");
             ui.horizontal(|ui| {
@@ -329,28 +341,41 @@ impl<'c> Interface<'c> {
                 }
             });
 
-            // Display download queue
-            for download in self
+            for download_report in self
                 .client
                 .downloader_data_mut()
                 .current_downloads
                 .iter_mut()
             {
-                // TODO: Implement a way to display currently running downloads
-                // ui.horizontal(|ui| {
-                //     ui.label(&download.url);
-                //     let progress = &mut download.progress;
-                //     ui.horizontal(|ui| {
-                //         ui.set_min_width(12. * 3.);
-                //         ui.label(format!("{:.0}%", *progress * 100.0));
-                //     });
-                //     ui.add(egui::ProgressBar::new(*progress).desired_width(100.0));
-                //     // Simulate progress for demonstration
-                //     *progress += 0.003; // Increment progress
-                //     if *progress >= 1.0 {
-                //         *progress = 1.0; // Cap at 100%
-                //     }
-                // });
+                ui.horizontal(|ui| {
+                    ui.label(&download_report.url);
+                    use shared::download::Phase;
+                    match &download_report.phase {
+                        Phase::Waiting => {
+                            ui.label("Waiting. . .");
+                        }
+                        Phase::PreProcessing => {
+                            ui.label("Pre processing");
+                        }
+                        Phase::Downloading { current_percentage } => {
+                            ui.set_min_width(12. * 3.);
+                            ui.label(format!("{:.0}%", *current_percentage));
+                            ui.add(
+                                egui::widgets::ProgressBar::new(*current_percentage / 100.)
+                                    .desired_width(100.),
+                            );
+                        }
+                        Phase::Postrocessing => {
+                            ui.label("Post processing");
+                        }
+                        Phase::Done => {
+                            ui.label("Done");
+                        }
+                        Phase::Error => {
+                            ui.label("Failed");
+                        }
+                    }
+                });
             }
         });
 

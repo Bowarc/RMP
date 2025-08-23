@@ -13,6 +13,5 @@ pub struct MusicPlayerData{
 #[derive(Default)]
 pub struct DownloaderData{
     pub new_download_url: String,
-    pub current_downloads: Vec<()>, // Add a struct containing download reports, this isn't done in server atm
-    
+    pub current_downloads: Vec<shared::download::Report>, // Add a struct containing download reports, this isn't done in server atm
 }

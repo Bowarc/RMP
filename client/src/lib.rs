@@ -92,6 +92,10 @@ impl App {
             }
             ServerMessage::Position(position) => self.player_data.position = position,
             ServerMessage::Library(songs) => self.player_data.song_list = songs,
+
+            ServerMessage::CurrentDownloads(reports) => {
+                self.downloader_data.current_downloads = reports
+            }
             ServerMessage::Error(error) => return Ok(Some(error)),
 
             _ => debug!("Unhandled message: {message:?}"),
