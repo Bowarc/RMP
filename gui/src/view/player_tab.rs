@@ -2,29 +2,10 @@ pub fn render(
     ui: &mut egui::Ui,
     ectx: &egui::Context,
     client: &mut client::Client,
-    music_player_last_update_request: &mut std::time::Instant,
-    polling_rate: &std::time::Duration,
 ) {
     use std::time::Duration;
     let mut to_send = Vec::new();
 
-    if client.player_data().playing {
-        // ectx.request_repaint();
-
-        if music_player_last_update_request
-            .elapsed()
-            .as_secs_f32()
-            > polling_rate.as_secs_f32() * 1.1
-        {
-            *music_player_last_update_request = std::time::Instant::now();
-            to_send.push(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::GetPosition.into(),
-            ));
-            to_send.push(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::GetPlayState.into(),
-            ));
-        }
-    }
 
     ui.horizontal(|ui| {
         // Create the sidebar for songs
@@ -38,7 +19,6 @@ pub fn render(
                             shared::command::PlayerCommand::ClearQueue.into(),
                         ));
                     }
-
                     to_send.push(shared::message::ClientMessage::Command(
                         shared::command::PlayerCommand::AddToQueue(song.uuid()).into(),
                     ));
@@ -68,11 +48,11 @@ pub fn render(
                         egui::Slider::new(&mut p, 0.0..=song.metadata().duration().as_secs_f32())
                             .show_value(false),
                     );
-                    ui.label(format!("{p:.2} seconds"));
-                    if resp.changed() && client.player_data().playing {
+                    let pd = Duration::from_secs_f32(p);
+                    ui.label(format!("{} seconds", time::format(&pd, 2)));
+                    if resp.changed() {
                         to_send.push(shared::message::ClientMessage::Command(
-                            shared::command::PlayerCommand::SetPosition(Duration::from_secs_f32(p))
-                                .into(),
+                            shared::command::PlayerCommand::SetPosition(pd).into(),
                         ));
                     }
                 });

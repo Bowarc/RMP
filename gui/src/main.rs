@@ -34,7 +34,47 @@ impl<'c> Interface<'c> {
     }
 }
 
-impl<'c> Interface<'c> {}
+impl<'c> Interface<'c> {
+    fn request_info_update(&mut self) {
+        if self.client.player_data().playing {
+            // ectx.request_repaint();
+
+            if self
+                .music_player_last_update_request
+                .elapsed()
+                .as_secs_f32()
+                > self.polling_rate.as_secs_f32() * 1.1
+            {
+                self.music_player_last_update_request = std::time::Instant::now();
+                // TODO: error mngment
+                let _ = self.client.send_multiple(vec![
+                    shared::message::ClientMessage::Command(
+                        shared::command::PlayerCommand::GetPosition.into(),
+                    ),
+                    shared::message::ClientMessage::Command(
+                        shared::command::PlayerCommand::GetPlayState.into(),
+                    ),
+                    shared::message::ClientMessage::Command(
+                        shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
+                    ),
+                ]);
+            }
+        }
+
+        if self.downloader_last_update_request.elapsed().as_secs_f32()
+            > self.polling_rate.as_secs_f32() * 1.1
+        {
+            self.downloader_last_update_request = std::time::Instant::now();
+
+            // TODO: error mngment
+            let _ = self
+                .client
+                .send_multiple(vec![shared::message::ClientMessage::Command(
+                    shared::command::DownloaderCommand::FetchCurrent.into(),
+                )]);
+        }
+    }
+}
 
 impl<'c> eframe::App for Interface<'c> {
     fn update(&mut self, ectx: &egui::Context, _frame: &mut eframe::Frame) {
@@ -49,6 +89,9 @@ impl<'c> eframe::App for Interface<'c> {
             }
         }
         ectx.request_repaint();
+        ectx.set_debug_on_hover(true);
+
+        self.request_info_update();
 
         egui::CentralPanel::default()
             .frame(
@@ -123,29 +166,31 @@ impl<'c> eframe::App for Interface<'c> {
                 }
                 .shrink(4.0);
 
-                ui.scope_builder(egui::UiBuilder::new().max_rect(unallocated_size), |ui| {
-                    ui.style_mut().spacing.indent = 10.;
-                    match self.current_tab {
-                        Tab::MusicPlayer => {
-                            view::player_tab::render(
-                                ui,
-                                ectx,
-                                self.client,
-                                &mut self.music_player_last_update_request,
-                                &self.polling_rate,
-                            );
+                let general_content =
+                    ui.scope_builder(egui::UiBuilder::new().max_rect(unallocated_size), |ui| {
+                        ui.style_mut().spacing.indent = 10.;
+                        match self.current_tab {
+                            Tab::MusicPlayer => {
+                                view::player_tab::render(ui, ectx, self.client);
+                            }
+                            Tab::Downloads => {
+                                view::downloader_tab::downloader_tab(ui, ectx, self.client);
+                            }
                         }
-                        Tab::Downloads => {
-                            view::downloader_tab::downloader_tab(
-                                ui,
-                                ectx,
-                                self.client,
-                                &mut self.downloader_last_update_request,
-                                &self.polling_rate,
-                            );
-                        }
-                    }
-                })
+                    });
+
+                let currently_playing_bar_size = {
+                    const TAB_SELECT_PADDING: f32 = 10.;
+                    let mut rect = unallocated_size;
+                    rect.min.y = unallocated_size.min.y
+                        + (general_content.response.rect.max.y
+                            - general_content.response.rect.min.y)
+                        + TAB_SELECT_PADDING;
+                    rect
+                }
+                .shrink(4.0);
+
+                view::currently_playing_bar::render(ui, ectx, currently_playing_bar_size, self.client);
             });
     }
 }

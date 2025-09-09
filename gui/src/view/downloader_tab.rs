@@ -2,16 +2,8 @@ pub fn downloader_tab(
     ui: &mut egui::Ui,
     _ectx: &egui::Context,
     client: &mut client::Client,
-    downloader_last_update_request: &mut std::time::Instant,
-    polling_rate: &std::time::Duration,
 ) {
     let mut to_send = Vec::new();
-    if downloader_last_update_request.elapsed().as_secs_f32() > polling_rate.as_secs_f32() * 1.1 {
-        *downloader_last_update_request = std::time::Instant::now();
-        to_send.push(shared::message::ClientMessage::Command(
-            shared::command::DownloaderCommand::FetchCurrent.into(),
-        ));
-    }
 
     ui.group(|ui| {
         ui.label("Download Music");
@@ -19,7 +11,6 @@ pub fn downloader_tab(
             ui.label("URL:");
             ui.text_edit_singleline(&mut client.downloader_data_mut().new_download_url);
             if ui.button("Download").clicked() {
-                // Simulate adding a download
                 to_send.push(shared::message::ClientMessage::Command(
                     shared::command::DownloaderCommand::QueueDownload(
                         client.downloader_data().new_download_url.clone(),
