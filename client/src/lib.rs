@@ -3,14 +3,14 @@ extern crate log;
 
 mod data;
 
-pub struct App {
+pub struct Client {
     socket: shared::Socket,
     player_data: data::MusicPlayerData,
     downloader_data: data::DownloaderData,
     ping: std::time::Duration,
 }
 
-impl App {
+impl Client {
     pub fn init() -> Self {
         let mut socket = shared::socket::new_nonblocking().unwrap();
 
@@ -44,7 +44,7 @@ impl App {
         }
     }
 
-    pub fn update(&mut self) -> usize {
+    pub fn update(&mut self) -> Result<usize, shared::error::SocketError> {
         use shared::error::SocketError;
         let mut message_count = 0;
         loop {
@@ -62,11 +62,13 @@ impl App {
                     {
                         break;
                     }
-                    error!("{e}")
+                    error!("{e}");
+
+                    return Err(e);
                 }
             }
         }
-        message_count
+        Ok(message_count)
     }
     pub fn handle_server_message(
         &mut self,
@@ -117,7 +119,7 @@ impl App {
     }
 }
 
-impl App {
+impl Client {
     pub fn socket(&self) -> &shared::Socket {
         &self.socket
     }
