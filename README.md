@@ -21,7 +21,7 @@ Still in very early phase of dev.
   Not yet started
 - Gui
   Player is working, most of the features are implemented but the interface is still very ugly  
-  Downloader technically works, but there is no feedback so library is not updated after download has ended
+  Downloader technically works, but is still very debug-y looking  
 
 Check the [Roadmap](./roadmap.md) for precise information
 
@@ -41,6 +41,3 @@ I currently use ytdlp as the backend for the downloader, but it's not too tightl
 ## Installation
 
 Still a big todo, I'll probably make a simple installer like the one I did for [Lumin](https://github.com/bowarc/lumin)
-
-
-

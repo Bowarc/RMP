@@ -60,5 +60,7 @@
             - [ ] Get/Set Audio device
         - [ ] Downloader
             - [x] Add a download to queue
+            - [x] Track current and past downloads
+            - [x] Update local library after download
             - [ ] Everything else
         - [ ] ? Playlist manager
