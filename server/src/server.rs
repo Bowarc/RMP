@@ -27,6 +27,7 @@ fn client_timeout(
     // SAFETY: tkt
     #[allow(static_mut_refs)]
     if unsafe { LAST_RECEIVED_TIME.is_none() } {
+        unsafe { LAST_RECEIVED_TIME = Some(std::time::Instant::now()) };
         return;
     }
 
