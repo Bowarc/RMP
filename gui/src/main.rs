@@ -5,6 +5,7 @@ use eframe::egui;
 
 mod view;
 
+#[derive(std::cmp::PartialEq)]
 enum Tab {
     MusicPlayer,
     Downloads,
@@ -61,8 +62,9 @@ impl<'c> Interface<'c> {
             }
         }
 
-        if self.downloader_last_update_request.elapsed().as_secs_f32()
-            > self.polling_rate.as_secs_f32() * 1.1
+        if self.current_tab == Tab::Downloads
+            && self.downloader_last_update_request.elapsed().as_secs_f32()
+                > self.polling_rate.as_secs_f32() * 1.1
         {
             self.downloader_last_update_request = std::time::Instant::now();
 
@@ -89,8 +91,7 @@ impl<'c> eframe::App for Interface<'c> {
             }
         }
         ectx.request_repaint();
-        ectx.set_debug_on_hover(true);
-
+        // ectx.set_debug_on_hover(true);
         self.request_info_update();
 
         egui::CentralPanel::default()
@@ -105,6 +106,7 @@ impl<'c> eframe::App for Interface<'c> {
                 const TITLE_BAR_HEIGHT: f32 = 32.0;
 
                 let app_rect = ui.max_rect();
+                println!("{app_rect}");
 
                 // draw the title bar
                 let title_bar_rect = {
@@ -182,15 +184,21 @@ impl<'c> eframe::App for Interface<'c> {
                 let currently_playing_bar_size = {
                     const TAB_SELECT_PADDING: f32 = 10.;
                     let mut rect = unallocated_size;
-                    rect.min.y = unallocated_size.min.y
-                        + (general_content.response.rect.max.y
-                            - general_content.response.rect.min.y)
-                        + TAB_SELECT_PADDING;
+                    // rect.min.y = app_rect.max.y - 100.;
+                    // rect.max.y = app_rect.max.y;
+                    rect.min.y = general_content.response.rect.max.y + TAB_SELECT_PADDING;
                     rect
                 }
                 .shrink(4.0);
 
-                view::currently_playing_bar::render(ui, ectx, currently_playing_bar_size, self.client);
+                println!("{currently_playing_bar_size}");
+
+                view::currently_playing_bar::render(
+                    ui,
+                    ectx,
+                    currently_playing_bar_size,
+                    self.client,
+                );
             });
     }
 }
