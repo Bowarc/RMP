@@ -31,7 +31,7 @@ fn client_timeout(
     }
 
     if unsafe { !PING_SENT } && unsafe { LAST_RECEIVED_TIME.unwrap().elapsed() > MAX_SILENT_TIME } {
-        debug!("Havn't heard from the client in a while, let's ping it");
+        // debug!("Havn't heard from the client in a while, let's ping it");
         let _ = socket_opt
             .as_mut()
             .unwrap()
@@ -89,7 +89,9 @@ pub fn recv_commands(
 
         msg_received_this_tick = true;
 
-        info!("Received a message from socket: {cm:?}");
+        if cm != ClientMessage::Pong {
+            info!("Received a message from socket: {cm:?}");
+        }
 
         match cm {
             ClientMessage::Command(command) => match command {

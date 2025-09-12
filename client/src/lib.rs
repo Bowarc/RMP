@@ -75,7 +75,9 @@ impl Client {
         message: shared::message::ServerMessage,
     ) -> Result<Option<shared::error::server::Error>, shared::error::SocketError> {
         use shared::message::{ClientMessage, ServerMessage};
-        debug!("Received message: {message:?}");
+        if message != ServerMessage::Ping {
+            debug!("Received message: {message:?}");
+        }
         match message {
             ServerMessage::Ping => {
                 self.socket.send(ClientMessage::Pong)?;
