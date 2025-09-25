@@ -37,6 +37,7 @@ impl<'c> Interface<'c> {
 
 impl<'c> Interface<'c> {
     fn request_info_update(&mut self) {
+        use shared::{command::PlayerCommand, message::ClientMessage};
         if self.client.player_data().playing {
             // ectx.request_repaint();
 
@@ -49,15 +50,10 @@ impl<'c> Interface<'c> {
                 self.music_player_last_update_request = std::time::Instant::now();
                 // TODO: error mngment
                 let _ = self.client.send_multiple(vec![
-                    shared::message::ClientMessage::Command(
-                        shared::command::PlayerCommand::GetPosition.into(),
-                    ),
-                    shared::message::ClientMessage::Command(
-                        shared::command::PlayerCommand::GetPlayState.into(),
-                    ),
-                    shared::message::ClientMessage::Command(
-                        shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
-                    ),
+                    ClientMessage::Command(PlayerCommand::GetPosition.into()),
+                    ClientMessage::Command(PlayerCommand::GetPlayState.into()),
+                    ClientMessage::Command(PlayerCommand::GetCurrentlyPlaying.into()),
+                    ClientMessage::Command(PlayerCommand::GetQueue.into()),
                 ]);
             }
         }
@@ -91,7 +87,7 @@ impl<'c> eframe::App for Interface<'c> {
             }
         }
         ectx.request_repaint();
-        // ectx.set_debug_on_hover(true);
+        ectx.set_debug_on_hover(true);
         self.request_info_update();
 
         egui::CentralPanel::default()
@@ -106,7 +102,6 @@ impl<'c> eframe::App for Interface<'c> {
                 const TITLE_BAR_HEIGHT: f32 = 32.0;
 
                 let app_rect = ui.max_rect();
-                println!("{app_rect}");
 
                 // draw the title bar
                 let title_bar_rect = {
@@ -173,7 +168,8 @@ impl<'c> eframe::App for Interface<'c> {
                         ui.style_mut().spacing.indent = 10.;
                         match self.current_tab {
                             Tab::MusicPlayer => {
-                                view::player_tab::render(ui, ectx, self.client);
+                                view::song_list::render(ui, self.client);
+                                view::song_queue::render(ui, unallocated_size, self.client);
                             }
                             Tab::Downloads => {
                                 view::downloader_tab::downloader_tab(ui, ectx, self.client);
@@ -190,8 +186,6 @@ impl<'c> eframe::App for Interface<'c> {
                     rect
                 }
                 .shrink(4.0);
-
-                println!("{currently_playing_bar_size}");
 
                 view::currently_playing_bar::render(
                     ui,

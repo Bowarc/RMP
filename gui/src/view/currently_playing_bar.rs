@@ -1,4 +1,3 @@
-use egui::Slider;
 
 pub fn render(
     ui: &mut egui::Ui,
@@ -50,8 +49,8 @@ pub fn render(
         r
     };
 
-    println!("{left_rect}, {mid_rect}, {right_rect}");
-    println!("{}, {}, {}",left_rect.width(), mid_rect.width(),right_rect.width());
+    // println!("{left_rect}, {mid_rect}, {right_rect}");
+    // println!("{}, {}, {}",left_rect.width(), mid_rect.width(),right_rect.width());
 
     let left_resp = ui.scope_builder(
         UiBuilder::new()
@@ -164,44 +163,19 @@ pub fn render(
 fn time_format(t: &std::time::Duration) -> String {
     let mut prec = 2;
     {
-        const NANOS_IN_MICROSECOND: f64 = 1_000.0;
         const NANOS_IN_MILLISECOND: f64 = 1_000_000.0;
         const NANOS_IN_SECOND: f64 = 1_000_000_000.0;
         const NANOS_IN_MINUTE: f64 = NANOS_IN_SECOND * 60.0;
         const NANOS_IN_HOUR: f64 = NANOS_IN_MINUTE * 60.0;
-        const NANOS_IN_DAY: f64 = NANOS_IN_HOUR * 24.0;
-        const NANOS_IN_WEEK: f64 = NANOS_IN_DAY * 7.0;
-        const NANOS_IN_YEAR: f64 = NANOS_IN_DAY * 365.0;
 
         let total_nanos = t.as_nanos() as f64;
 
         if total_nanos < 1.0 {
-            return format!("{:.0}: ", total_nanos.floor());
+            return format!("{:.0}", total_nanos.floor());
         }
 
         let mut remaining_nanos = total_nanos;
         let mut formatted_duration = String::new();
-
-        if remaining_nanos >= NANOS_IN_YEAR && prec != 0 {
-            prec -= 1;
-            let years = remaining_nanos / NANOS_IN_YEAR;
-            formatted_duration.push_str(&format!("{:.0}: ", years.floor()));
-            remaining_nanos %= NANOS_IN_YEAR;
-        }
-
-        if remaining_nanos >= NANOS_IN_WEEK && prec != 0 {
-            prec -= 1;
-            let weeks = remaining_nanos / NANOS_IN_WEEK;
-            formatted_duration.push_str(&format!("{:.0}: ", weeks.floor()));
-            remaining_nanos %= NANOS_IN_WEEK;
-        }
-
-        if remaining_nanos >= NANOS_IN_DAY && prec != 0 {
-            prec -= 1;
-            let days = remaining_nanos / NANOS_IN_DAY;
-            formatted_duration.push_str(&format!("{:.0}: ", days.floor()));
-            remaining_nanos %= NANOS_IN_DAY;
-        }
 
         if remaining_nanos >= NANOS_IN_HOUR && prec != 0 {
             prec -= 1;
@@ -218,28 +192,12 @@ fn time_format(t: &std::time::Duration) -> String {
         }
 
         if remaining_nanos >= NANOS_IN_SECOND && prec != 0 {
-            prec -= 1;
             let seconds = remaining_nanos / NANOS_IN_SECOND;
             formatted_duration.push_str(&format!("{:.0}: ", seconds.floor()));
-            remaining_nanos %= NANOS_IN_SECOND;
         }
 
-        if remaining_nanos >= NANOS_IN_MILLISECOND && prec != 0 {
-            prec -= 1;
-            let milis = remaining_nanos / NANOS_IN_MILLISECOND;
-            formatted_duration.push_str(&format!("{:.0}: ", milis.floor()));
-            remaining_nanos %= NANOS_IN_MILLISECOND;
-        }
-
-        if remaining_nanos >= NANOS_IN_MICROSECOND && prec != 0 {
-            prec -= 1;
-            let micro = remaining_nanos / NANOS_IN_MICROSECOND;
-            formatted_duration.push_str(&format!("{:.0}: ", micro.floor()));
-            remaining_nanos %= NANOS_IN_MICROSECOND;
-        }
-
-        if remaining_nanos > 0.0 && prec != 0 {
-            formatted_duration.push_str(&format!("{:.0}: ", remaining_nanos.floor()));
+        if formatted_duration.is_empty(){
+            formatted_duration = "0".to_string();
         }
 
         formatted_duration.trim().trim_end_matches(":").to_string()
