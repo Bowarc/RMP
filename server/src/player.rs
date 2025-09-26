@@ -26,7 +26,7 @@ pub trait Player {
     fn currently_playing_index(&self) -> Result<u64>;
 
     fn add_queue(&mut self, uuid: uuid::Uuid) -> Result<()>;
-    fn remove_queue(&mut self, uuid: uuid::Uuid) -> Result<()>;
+    fn remove_queue(&mut self, index: u16) -> Result<()>;
     fn clear_queue(&mut self) -> Result<()>;
     fn queue(&self) -> Result<Vec<shared::song::Song>>; // TODO: swap to a user friendly song identification system
 

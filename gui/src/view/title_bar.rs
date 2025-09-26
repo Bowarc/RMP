@@ -1,8 +1,4 @@
-pub fn render(
-    ui: &mut egui::Ui,
-    ectx: &egui::Context,
-    available_rect: eframe::epaint::Rect,
-) {
+pub fn render(ui: &mut egui::Ui, ectx: &egui::Context, available_rect: eframe::epaint::Rect) {
     const TITLE: &str = "RMP GUI";
 
     let painter = ui.painter();

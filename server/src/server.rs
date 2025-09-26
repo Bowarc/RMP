@@ -198,8 +198,8 @@ pub fn handle_player_command(
 
             let _ = socket.send(ServerMessage::PlayerQueue(music_player.queue()?));
         }
-        PlayerCommand::RemoveFromQueue(id) => {
-            music_player.remove_queue(id)?;
+        PlayerCommand::RemoveFromQueue(i) => {
+            music_player.remove_queue(i)?;
 
             let _ = socket.send(ServerMessage::PlayerQueue(music_player.queue()?));
         }

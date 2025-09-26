@@ -61,14 +61,8 @@ fn main() {
                     commands::player::queue::add(&mut socket, si);
                 }
                 Some(("remove", args)) => {
-                    use std::str::FromStr as _;
-                    let arg = args.get_one::<String>("ARG").unwrap();
-                    let si = if let Ok(uuid) = uuid::Uuid::from_str(arg) {
-                        commands::player::queue::SongIdentifier::Uuid(uuid)
-                    } else {
-                        commands::player::queue::SongIdentifier::Title(arg.to_owned())
-                    };
-                    commands::player::queue::remove(&mut socket, si);
+                    let arg = args.get_one::<u16>("ARG").unwrap();
+                    commands::player::queue::remove(&mut socket, *arg);
                 }
                 Some(("clear", _args)) => commands::player::queue::clear(&mut socket),
                 _ => unreachable!(),

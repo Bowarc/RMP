@@ -1,9 +1,4 @@
-pub fn downloader_tab(
-    ui: &mut egui::Ui,
-    _ectx: &egui::Context,
-    client: &mut client::Client,
-) {
-
+pub fn downloader_tab(ui: &mut egui::Ui, _ectx: &egui::Context, client: &mut client::Client) {
     let mut to_send = Vec::new();
 
     ui.group(|ui| {

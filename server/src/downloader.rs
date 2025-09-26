@@ -63,15 +63,12 @@ impl DownloadManager {
             });
         }
 
-        for handle in self.old.iter(){
-            out.push(
-                shared::download::Report{
-                    uuid: *handle.uuid(),
-                    url: handle.url().clone(),
-                    phase: handle.phase()
-                }
-                
-            )
+        for handle in self.old.iter() {
+            out.push(shared::download::Report {
+                uuid: *handle.uuid(),
+                url: handle.url().clone(),
+                phase: handle.phase(),
+            })
         }
 
         out
@@ -86,7 +83,7 @@ impl Default for DownloadManager {
             queue: VecDeque::new(),
             threadpool: ThreadPool::new(1), // Im not sure having threads up 24/7 is a good usage of resources lmao
             current: None,
-            old: Vec::new()
+            old: Vec::new(),
         }
     }
 }

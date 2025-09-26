@@ -1,10 +1,5 @@
-pub fn render(
-    ui: &mut egui::Ui,
-    ectx: &egui::Context,
-    client: &mut client::Client,
-) {
+pub fn render(ui: &mut egui::Ui, ectx: &egui::Context, client: &mut client::Client) {
     let mut to_send = Vec::new();
-
 
     ui.horizontal(|ui| {
         // Create the sidebar for songs

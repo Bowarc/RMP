@@ -140,10 +140,26 @@ pub fn render(ui: &mut egui::Ui, mut max_rect: egui::Rect, client: &mut client::
                     egui::ScrollArea::vertical()
                         .max_height(400.)
                         .show(ui, |ui| {
-                            for song in client.player_data().song_queue.iter() {
-                                if ui.button(song.metadata().title()).clicked() {
-                                    debug!("Queue song clicked: {}", song.metadata().title());
-                                }
+                            for (i, song) in client.player_data().song_queue.iter().enumerate() {
+                                ui.horizontal(|ui| {
+                                    ui.horizontal_wrapped(|ui| {
+                                        if ui.button(song.metadata().title()).clicked() {
+                                            debug!(
+                                                "Queue song clicked: {}",
+                                                song.metadata().title()
+                                            );
+                                        }
+                                    });
+                                    ui.with_layout(
+                                        egui::Layout::right_to_left(egui::Align::Center),
+                                        |ui| {
+                                            ui.add_space(5. );
+                                            if ui.button("X").clicked() {
+                                                to_send.push(shared::message::ClientMessage::Command(shared::command::PlayerCommand::RemoveFromQueue(i as u16).into()));
+                                            }
+                                        },
+                                    )
+                                });
                             }
                         })
                 });

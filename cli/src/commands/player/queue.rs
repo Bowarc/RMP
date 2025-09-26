@@ -31,22 +31,12 @@ pub fn add(socket: &mut shared::Socket, si: SongIdentifier) {
     }
 }
 
-pub fn remove(socket: &mut shared::Socket, si: SongIdentifier) {
-    match si {
-        SongIdentifier::Uuid(uuid) => {
-            socket
-                .send(ClientMessage::Command(Command::Player(
-                    PlayerCommand::RemoveFromQueue(uuid),
-                )))
-                .unwrap();
-        }
-        SongIdentifier::Title(_title) => {
-            // Todo: Get the list of locally imported songs,
-            // filter through them and file a match maybe using a fuzzy search
-
-            unimplemented!()
-        }
-    }
+pub fn remove(socket: &mut shared::Socket, index: u16) {
+    socket
+        .send(ClientMessage::Command(Command::Player(
+            PlayerCommand::RemoveFromQueue(index),
+        )))
+        .unwrap();
 }
 
 pub fn clear(socket: &mut shared::Socket) {

@@ -87,8 +87,13 @@ impl super::Player for RodioPlayer {
         use crate::error::PlayerError;
         use rodio::decoder::Decoder;
 
+        if self.sink.len() != 0 {
+            // Already playing
+            return Ok(());
+        }
+
         if self.queue.is_empty() {
-            return Err(PlayerError::EmptyStack);
+            return Err(PlayerError::EmptyQueue);
         }
 
         if self.queue_pointer.is_none() {
@@ -154,15 +159,16 @@ impl super::Player for RodioPlayer {
         Ok(())
     }
 
-    fn remove_queue(&mut self, uuid: uuid::Uuid) -> super::Result<()> {
+    fn remove_queue(&mut self, index: u16) -> super::Result<()> {
         use std::cmp::Ordering;
-        let Some(index) = self.queue.iter().position(|item| item.uuid() == uuid) else {
-            // The given uuid hasn't been found in the queue, the user is happy :D
-            return Ok(());
-        };
 
-        self.queue.remove(index);
+        let old = self.queue.remove(index as usize);
 
+        // if self.queue.is_empty(){
+        //     self.queue_pointer = None;
+        // }
+
+        let mut should_play = false;
         if let Some(qp) = &mut self.queue_pointer {
             match (*qp).cmp(&(index as u64)) {
                 Ordering::Greater => {
@@ -172,7 +178,7 @@ impl super::Player for RodioPlayer {
                 Ordering::Equal => {
                     // Removing the currently playing song should cause the player to stop
                     self.sink.clear();
-                    self.sink.pause();
+                    should_play = true;
                 }
                 Ordering::Less => {
                     // The queue pointer is before the deleted song in the list, no need to change anything
@@ -184,8 +190,11 @@ impl super::Player for RodioPlayer {
                 *qp = (self.queue.len() - 1) as u64
             }
         }
+        if should_play {
+            self.play()?
+        }
 
-        debug!("{uuid} has been remove from rodio player's queue !");
+        debug!("{} has been remove from rodio player's queue !", old.uuid());
         Ok(())
     }
 
@@ -297,10 +306,10 @@ impl super::Player for RodioPlayer {
 
         // should be fine as the order of operation should optimize the unwrap condition out if the 2nd cond is not met
         if self.sink.len() == 0
-            && self.queue_pointer.is_some()
-            && self.queue_pointer.unwrap() as usize != self.queue.len() - 1
+            && let Some(qp) = &mut self.queue_pointer
+            && *qp as usize != self.queue.len() - 1
         {
-            *self.queue_pointer.as_mut().unwrap() += 1;
+            *qp += 1;
             self.play()?
         }
 

@@ -32,8 +32,7 @@ pub fn cmd() -> clap::Command {
                 .subcommand(
                 	Command::new("remove").alias("d")
             		.about("Removes a given song name or UUID to RMP's song queue")
-            		.arg(arg!(<ARG> "The UUID or name of the requested song")
-            			.help("Must be a valid song name or v4 UUID, see <https://en.wikipedia.org/wiki/Universally_unique_identifier> for more information"))
+            		.arg(arg!(<ARG> "The index of the requested song in the queue"))
             		.arg_required_else_help(true),
                 )
                 .subcommand(

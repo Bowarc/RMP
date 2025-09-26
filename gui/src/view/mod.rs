@@ -2,8 +2,8 @@ pub mod currently_playing_bar;
 pub mod downloader_tab;
 pub mod player_tab;
 pub mod song_list;
-pub mod title_bar;
 pub mod song_queue;
+pub mod title_bar;
 
 pub fn center(
     ui: &mut eframe::egui::Ui,
