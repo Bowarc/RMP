@@ -3,7 +3,6 @@ pub fn render(
     ectx: &egui::Context,
     client: &mut client::Client,
 ) {
-    use std::time::Duration;
     let mut to_send = Vec::new();
 
 

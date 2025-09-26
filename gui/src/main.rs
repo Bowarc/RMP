@@ -87,7 +87,7 @@ impl<'c> eframe::App for Interface<'c> {
             }
         }
         ectx.request_repaint();
-        ectx.set_debug_on_hover(true);
+        // ectx.set_debug_on_hover(true);
         self.request_info_update();
 
         egui::CentralPanel::default()
@@ -209,6 +209,7 @@ fn create_client() -> client::Client {
         ClientMessage::Command(PlayerCommand::GetVolume.into()),
         ClientMessage::Command(PlayerCommand::GetCurrentlyPlaying.into()),
         ClientMessage::Command(PlayerCommand::GetPlayState.into()),
+        ClientMessage::Command(PlayerCommand::GetPosition.into()),
         ClientMessage::Command(Command::GetLibrary),
     ]) {
         error!("Failed to send an init message due to: {e}");

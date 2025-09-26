@@ -1,4 +1,3 @@
-
 pub fn render(
     ui: &mut egui::Ui,
     ectx: &egui::Context,
@@ -135,6 +134,13 @@ pub fn render(
             let output = MIN_OUTPUT + (MAX_OUTPUT - MIN_OUTPUT) * pos.powf(2.0);
             ui.label(format!("{output:.2}"));
 
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                ui.add_space(5.);
+                if ui.button(egui::RichText::new("^")).clicked() {
+                    super::song_queue::flip(ui);
+                }
+            });
+
             if resp.changed() {
                 to_send.push(shared::message::ClientMessage::Command(
                     shared::command::PlayerCommand::SetVolume(output).into(),
@@ -163,7 +169,6 @@ pub fn render(
 fn time_format(t: &std::time::Duration) -> String {
     let mut prec = 2;
     {
-        const NANOS_IN_MILLISECOND: f64 = 1_000_000.0;
         const NANOS_IN_SECOND: f64 = 1_000_000_000.0;
         const NANOS_IN_MINUTE: f64 = NANOS_IN_SECOND * 60.0;
         const NANOS_IN_HOUR: f64 = NANOS_IN_MINUTE * 60.0;
@@ -196,7 +201,7 @@ fn time_format(t: &std::time::Duration) -> String {
             formatted_duration.push_str(&format!("{:.0}: ", seconds.floor()));
         }
 
-        if formatted_duration.is_empty(){
+        if formatted_duration.is_empty() {
             formatted_duration = "0".to_string();
         }
 
