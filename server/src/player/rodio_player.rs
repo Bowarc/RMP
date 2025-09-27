@@ -312,6 +312,10 @@ impl super::Player for RodioPlayer {
     }
 
     fn set_pos(&mut self, pos: std::time::Duration) -> super::Result<()> {
+        if self.sink.empty() {
+            return Ok(());
+        }
+
         self.sink
             .try_seek(pos)
             .map_err(|s_e| crate::error::PlayerError::SeekError(s_e.to_string()))
@@ -329,13 +333,19 @@ impl super::Player for RodioPlayer {
     fn update(&mut self) -> super::Result<()> {
         // Autoplay, if there is no songs playing, but the sink isn't pause, let's try playing the next in queue
         // About checking queue length etc.. the `play` method takes care of that.
-        if self.sink.empty()
-            && self.is_playing()
-            && let Some(qp) = &mut self.queue_pointer
-            && *qp as usize != self.queue.len() - 1
-        {
-            *qp += 1;
-            self.play()?;
+        if self.sink.empty() && self.is_playing() {
+            if let Some(qp) = &mut self.queue_pointer
+                && *qp as usize != self.queue.len() - 1
+            {
+                *qp += 1;
+                self.play()?;
+            } else {
+                self.pause()?;
+                self.sink.clear();
+                self.queue_pointer = None;
+                self.queue.clear();
+                // self.sink.try_seek(std::time::Duration::from_nanos(0)).unwrap();
+            }
         }
 
         Ok(())
