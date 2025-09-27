@@ -87,13 +87,16 @@ impl super::Player for RodioPlayer {
         use crate::error::PlayerError;
         use rodio::decoder::Decoder;
 
-        if self.sink.len() != 0 {
-            // Already playing
-            return Ok(());
-        }
-
         if self.queue.is_empty() {
             return Err(PlayerError::EmptyQueue);
+        }
+
+        if !self.sink.empty() {
+            // A song is already loaded
+            if self.sink.is_paused() {
+                self.sink.play();
+            }
+            return Ok(());
         }
 
         if self.queue_pointer.is_none() {
@@ -162,39 +165,62 @@ impl super::Player for RodioPlayer {
     fn remove_queue(&mut self, index: u16) -> super::Result<()> {
         use std::cmp::Ordering;
 
-        let old = self.queue.remove(index as usize);
-
-        // if self.queue.is_empty(){
-        //     self.queue_pointer = None;
-        // }
-
-        let mut should_play = false;
-        if let Some(qp) = &mut self.queue_pointer {
-            match (*qp).cmp(&(index as u64)) {
-                Ordering::Greater => {
-                    // Since the queue pointer is further away in the queue, removing one will cause a song to be skipped
-                    *qp -= 1
-                }
-                Ordering::Equal => {
-                    // Removing the currently playing song should cause the player to stop
-                    self.sink.clear();
-                    should_play = true;
-                }
-                Ordering::Less => {
-                    // The queue pointer is before the deleted song in the list, no need to change anything
-                }
-            }
-
-            // If the queue pointer is outside the queue, let's bring it back
-            if *qp >= self.queue.len() as u64 {
-                *qp = (self.queue.len() - 1) as u64
-            }
-        }
-        if should_play {
-            self.play()?
+        if self.queue.is_empty() {
+            panic!("Queue is empty");
         }
 
-        debug!("{} has been remove from rodio player's queue !", old.uuid());
+        if index as usize > self.queue.len() - 1 {
+            panic!("Index is outside the queue")
+        }
+
+        if self.queue.len() == 1 {
+            self.sink.clear();
+            self.queue.clear();
+            self.queue_pointer = None;
+            return Ok(());
+        }
+
+        let _old = self.queue.remove(index as usize);
+
+        let Some(qp) = &mut self.queue_pointer else {
+            // If there is no queue pointer, shouldn't we empty the sink and the queue ?
+            warn!(
+                "[??] Removed one song from queue, but there is no queue pointer\n{:?}\nSink playing: {}",
+                self.queue,
+                !self.sink.is_paused(),
+            );
+            return Ok(());
+        };
+
+        match (*qp).cmp(&(index as u64)) {
+            Ordering::Less => {
+                // The removed element is further down the queue, no need to move the queue pointer
+            }
+            Ordering::Equal => {
+                // The removed element is the one currently playing
+
+                let was_playing = !self.sink.is_paused();
+
+                // First, clear the sink
+                self.sink.clear(); // This also pauses the player
+                debug!("Equal");
+
+                // Then, let's try to play the next song if any
+                if was_playing && (*qp as usize) < self.queue.len() {
+                    debug!("Play");
+                    self.play()?;
+                } else {
+                    dbg!(was_playing);
+                    dbg!(&self.queue);
+                    dbg!(self.queue_pointer);
+                }
+            }
+            Ordering::Greater => {
+                // The removed element is before the queue pointer in the queue
+                *qp = qp.saturating_sub(1); // need to make sure we don't overflow
+            }
+        }
+
         Ok(())
     }
 
@@ -232,6 +258,8 @@ impl super::Player for RodioPlayer {
             })
     }
 
+    // TODO: This is really bad, it currently does not do anything if the current sink is paused
+    // Need to make the transition as seemless as possible (keep current queue, sink state, postions etc)
     fn set_device_by_name(&mut self, new_device_name: &str) -> super::Result<()> {
         use rodio::Sink;
 
@@ -299,18 +327,15 @@ impl super::Player for RodioPlayer {
     }
 
     fn update(&mut self) -> super::Result<()> {
-        // Autoplay
-        if self.sink.len() == 0 {
-            self.pause()?
-        }
-
-        // should be fine as the order of operation should optimize the unwrap condition out if the 2nd cond is not met
-        if self.sink.len() == 0
+        // Autoplay, if there is no songs playing, but the sink isn't pause, let's try playing the next in queue
+        // About checking queue length etc.. the `play` method takes care of that.
+        if self.sink.empty()
+            && self.is_playing()
             && let Some(qp) = &mut self.queue_pointer
             && *qp as usize != self.queue.len() - 1
         {
             *qp += 1;
-            self.play()?
+            self.play()?;
         }
 
         Ok(())
