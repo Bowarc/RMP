@@ -52,9 +52,9 @@
         - [ ] Player
             - [x] Play/Pause
             - [x] Get currently playing song
-            - [ ] Push music to queue (currently song requests are replacing the queue)
-            - [ ] Get music queue
-            - [ ] Clear music queue
+            - [x] Push music to queue (currently song requests are replacing the queue)
+            - [x] Get music queue
+            - [x] Clear music queue
             - [x] Get/Set volume
             - [x] Get/Set current song's seek status + updates
             - [ ] Get/Set Audio device
@@ -64,3 +64,4 @@
             - [x] Update local library after download
             - [ ] Everything else
         - [ ] ? Playlist manager
+
