@@ -12,14 +12,14 @@ TUI or GUI most of the time, but cli is nice to have for scripting or occasional
 ## State
 Still in very early phase of dev.
 
-- Server
+- Server  
     Rodio player is working well  
     Basic downloader done, need to clean it up a bit
-- Cli
+- Cli  
   Closely follows what the server is capable of
-- Tui
+- Tui  
   Not yet started
-- Gui
+- Gui  
   Player is working, most of the features are implemented but the interface is still very ugly  
   Downloader technically works, but is still very debug-y looking  
 
@@ -41,3 +41,4 @@ I currently use ytdlp as the backend for the downloader, but it's not too tightl
 ## Installation
 
 Still a big todo, I'll probably make a simple installer like the one I did for [Lumin](https://github.com/bowarc/lumin)
+
