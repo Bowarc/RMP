@@ -10,7 +10,7 @@ And being able to control the music server with whatever client im more conforta
 TUI or GUI most of the time, but cli is nice to have for scripting or occasional commands
 
 ## State
-Still in very early phase of dev.
+Works well, need playlists
 
 - Server  
     Rodio player is working well  
@@ -41,4 +41,5 @@ I currently use ytdlp as the backend for the downloader, but it's not too tightl
 ## Installation
 
 Still a big todo, I'll probably make a simple installer like the one I did for [Lumin](https://github.com/bowarc/lumin)
+
 
