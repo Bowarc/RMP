@@ -21,7 +21,9 @@ struct Interface<'c> {
 }
 
 impl<'c> Interface<'c> {
-    fn new(client: &'c mut client::Client, _cc: &eframe::CreationContext) -> Self {
+    fn new(client: &'c mut client::Client, cc: &eframe::CreationContext) -> Self {
+        load_fonts(&cc.egui_ctx);
+
         let ping = *client.ping();
 
         Self {
@@ -197,6 +199,71 @@ impl<'c> eframe::App for Interface<'c> {
     }
 }
 
+fn load_fonts(ectx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+
+    let mut load_one =
+        |name: &str, font_bytes: &'static [u8], proportional_main: bool, monospace_main: bool| {
+            fonts.font_data.insert(
+                name.to_string(),
+                egui::FontData::from_static(font_bytes).into(),
+            );
+
+            fonts.families.insert(
+                egui::FontFamily::Name(name.to_string().into()),
+                vec![name.to_string()],
+            );
+
+            match proportional_main {
+                true => {
+                    fonts
+                        .families
+                        .get_mut(&egui::FontFamily::Proportional)
+                        .unwrap()
+                        .insert(0, name.to_string());
+                }
+                false => {
+                    fonts
+                        .families
+                        .get_mut(&egui::FontFamily::Proportional)
+                        .unwrap()
+                        .push(name.to_string());
+                }
+            }
+            match monospace_main {
+                true => {
+                    fonts
+                        .families
+                        .get_mut(&egui::FontFamily::Monospace)
+                        .unwrap()
+                        .insert(0, name.to_string());
+                }
+                false => {
+                    fonts
+                        .families
+                        .get_mut(&egui::FontFamily::Monospace)
+                        .unwrap()
+                        .push(name.to_string());
+                }
+            }
+        };
+
+    load_one(
+        "hack",
+        include_bytes!("../assets/HackNerdFont-Regular.ttf"),
+        false,
+        false,
+    );
+    load_one(
+        "jp",
+        include_bytes!("../assets/NotoSansJP-Regular.ttf"),
+        false,
+        false,
+    );
+
+    ectx.set_fonts(fonts);
+}
+
 fn create_client() -> client::Client {
     use shared::{
         command::{Command, PlayerCommand},
@@ -209,6 +276,7 @@ fn create_client() -> client::Client {
         ClientMessage::Command(PlayerCommand::GetVolume.into()),
         ClientMessage::Command(PlayerCommand::GetCurrentlyPlaying.into()),
         ClientMessage::Command(PlayerCommand::GetPlayState.into()),
+        ClientMessage::Command(PlayerCommand::GetQueue.into()),
         ClientMessage::Command(PlayerCommand::GetPosition.into()),
         ClientMessage::Command(Command::GetLibrary),
     ]) {
