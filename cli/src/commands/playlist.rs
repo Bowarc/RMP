@@ -16,15 +16,22 @@ pub fn get_one(socket: &mut shared::Socket, uuid: uuid::Uuid) -> shared::playlis
     crate::send_and_wait!(socket, Command::Playlist(PlaylistCommand::GetOne(uuid)), shared::playlist::Playlist, ServerMessage::Playlist(playlist) => playlist)
 }
 
-// TODO: Create
+pub fn create(socket: &mut shared::Socket, playlist: shared::playlist::Playlist) {
+    use shared::{command::PlaylistCommand, message::ClientMessage};
+
+    socket
+        .send(ClientMessage::Command(
+            PlaylistCommand::Create(playlist).into(),
+        ))
+        .unwrap();
+}
 
 pub fn delete(socket: &mut shared::Socket, playlist_uuid: uuid::Uuid) {
     use shared::{command::PlaylistCommand, message::ClientMessage};
 
     socket
         .send(ClientMessage::Command(
-            PlaylistCommand::Delete(playlist_uuid)
-            .into(),
+            PlaylistCommand::Delete(playlist_uuid).into(),
         ))
         .unwrap();
 }

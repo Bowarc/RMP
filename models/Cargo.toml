@@ -15,4 +15,4 @@ path = "src/lib.rs"
 # incremental = true
 
 [dependencies]
-serde = { version = "1.0.219", features = ["derive"] }
+serde = {workspace = true, features = ["derive"] }

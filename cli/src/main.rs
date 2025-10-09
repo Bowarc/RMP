@@ -161,34 +161,41 @@ fn main() {
             _ => unimplemented!(),
         },
         Some(("playlist", args)) => match args.subcommand() {
+            Some(("create", args)) => {
+                let name = args.get_one::<String>("Name").unwrap();
+                let playlist = shared::playlist::Playlist::new(name);
+                commands::playlist::create(&mut socket, playlist);
+            }
             Some(("get-all", _args)) => {
                 let all = commands::playlist::get_all(&mut socket);
 
                 println!("{all:#?}");
             }
-            Some(("get", _args)) => {
-                let uuid = args.get_one::<uuid::Uuid>("Uuid").unwrap();
-                let playlist = commands::playlist::get_one(&mut socket, *uuid);
+            Some(("get", args)) => {
+                let uuid = uuid::Uuid::from_str(args.get_one::<String>("Uuid").unwrap()).unwrap();
+                let playlist = commands::playlist::get_one(&mut socket, uuid);
                 println!("{playlist:#?}");
             }
-            Some(("rename", _args)) => {
-                let uuid = args.get_one::<uuid::Uuid>("Uuid").unwrap();
-                let new_name = args.get_one::<String>("String").unwrap();
-                commands::playlist::rename(&mut socket, *uuid, new_name.clone());
+            Some(("rename", args)) => {
+                let uuid = uuid::Uuid::from_str(args.get_one::<String>("Uuid").unwrap()).unwrap();
+                let new_name = args.get_one::<String>("NewName").unwrap();
+                commands::playlist::rename(&mut socket, uuid, new_name.clone());
             }
-            Some(("add", _args)) => {
-                let puuid = args.get_one::<uuid::Uuid>("PUuid").unwrap();
-                let suuid = args.get_one::<uuid::Uuid>("SUuid").unwrap();
-                commands::playlist::add_song(&mut socket, *puuid, *suuid);
+            Some(("add", args)) => {
+                let puuid =
+                    uuid::Uuid::from_str(args.get_one::<String>("PlaylistUuid").unwrap()).unwrap();
+                let suuid =
+                    uuid::Uuid::from_str(args.get_one::<String>("SongUuid").unwrap()).unwrap();
+                commands::playlist::add_song(&mut socket, puuid, suuid);
             }
-            Some(("rm", _args)) => {
-                let uuid = args.get_one::<uuid::Uuid>("Uuid").unwrap();
-                let s_index = args.get_one::<u16>("u16").unwrap();
-                commands::playlist::remove_song(&mut socket, *uuid, *s_index);
+            Some(("rm", args)) => {
+                let uuid = uuid::Uuid::from_str(args.get_one::<String>("Uuid").unwrap()).unwrap();
+                let s_index = args.get_one::<u16>("Index").unwrap();
+                commands::playlist::remove_song(&mut socket, uuid, *s_index);
             }
-            Some(("del", _args)) => {
-                let uuid = args.get_one::<uuid::Uuid>("Uuid").unwrap();
-                commands::playlist::delete(&mut socket, *uuid);
+            Some(("del", args)) => {
+                let uuid = uuid::Uuid::from_str(args.get_one::<String>("Uuid").unwrap()).unwrap();
+                commands::playlist::delete(&mut socket, uuid);
             }
             _ => unimplemented!(),
         },

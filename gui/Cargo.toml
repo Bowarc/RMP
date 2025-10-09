@@ -14,5 +14,4 @@ shared = { path = "../shared" }
 client = { path = "../client" }
 log.workspace = true
 logger.workspace = true
-uuid.workspace = true
 time.workspace = true

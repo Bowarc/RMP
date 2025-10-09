@@ -12,11 +12,11 @@ crate-type = ["rlib"]
 server = ["dep:ffprobe"] # Enables server only functionalities like fs access
 
 [dependencies]
-serde = { version = "1.0.208", features = [
+serde = { workspace = true, features = [
   "derive",
 ] } # Also used by clients for deserialization
 ron.workspace = true # Also used by clients for errors
-thiserror.workspace = true
+thiserror = "1.0.63"
 uuid.workspace = true
 
 networking.workspace = true

@@ -17,7 +17,7 @@ nonblock = { git = "https://github.com/Bowarc/nonblock-rs", version = "0.2.0" }
 ctrlc = "3.4.5"
 spin_sleep_util = "0.1.1"
 
-serde = { version = "1.0.219", features = ["derive"] }
+serde = { workspace = true, features = ["derive"] }
 serde_json = "1.0.140"
 
 logger.workspace = true

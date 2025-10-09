@@ -1,8 +1,13 @@
 [package]
 name = "tui"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [[bin]]
-name = "tui_client"
+name = "rmp_tui"
 path = "src/main.rs"
+
+[dependencies]
+crossterm = "0.29.0"
+ratatui = "0.29.0"
+shared = { path = "../shared" }

@@ -157,7 +157,7 @@ pub fn cmd() -> clap::Command {
         )
         .subcommand(
             Command::new("playlist").aliases(["playlists", "plist", "plists"])
-                .about("Query, create(TODO), modify and delete playlists")
+                .about("Query, create, modify and delete playlists")
             .subcommand(
                 Command::new("get-all").aliases(["getall", "g-a", "ga"])
                 .about("Query all the playlists")
@@ -169,24 +169,30 @@ pub fn cmd() -> clap::Command {
                     .arg_required_else_help(true)
             )
             .subcommand(
+                Command::new("create")
+                    .about("Create a playlist")
+                    .arg(arg!(<Name> "Name of the playlist"))
+                    .arg_required_else_help(true)
+            )
+            .subcommand(
                 Command::new("rename")
                     .about("Rename a playlist")
                     .arg(arg!(<Uuid> "Uuid of the playlist"))
-                    .arg(arg!(<String> "New name"))
+                    .arg(arg!(<NewName> "New name"))
                     .arg_required_else_help(true)
             )
             .subcommand(
                 Command::new("add")
                     .about("Add a song to a playlist")
-                    .arg(arg!(<PUuid> "Uuid of the playlist"))
-                    .arg(arg!(<SUuid> "Uuid of the song to add"))
+                    .arg(arg!(<PlaylistUuid> "Uuid of the playlist"))
+                    .arg(arg!(<SongUuid> "Uuid of the song to add"))
                     .arg_required_else_help(true)
             )
             .subcommand(
                 Command::new("rm")
                     .about("Remove a song from a playlist")
                     .arg(arg!(<Uuid> "Uuid of the playlist"))
-                    .arg(arg!(<u16> "Index of the song remove"))
+                    .arg(arg!(<Index> "Index of the song remove"))
                     .arg_required_else_help(true)
             )
             .subcommand(

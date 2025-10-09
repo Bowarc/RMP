@@ -768,7 +768,6 @@ version = "0.1.0"
 dependencies = [
  "log",
  "shared",
- "uuid",
 ]
 
 [[package]]
@@ -1708,7 +1707,6 @@ dependencies = [
  "logger",
  "shared",
  "time",
- "uuid",
 ]
 
 [[package]]

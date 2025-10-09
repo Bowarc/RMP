@@ -324,7 +324,40 @@ fn handle_playlist_command(
     use shared::message::ServerMessage;
 
     match pc {
-        shared::command::PlaylistCommand::GetAll => {}
+        shared::command::PlaylistCommand::GetAll => {
+            let read_dir = match std::fs::read_dir(crate::config::songs_path()) {
+                Ok(rd) => rd,
+                Err(e) => {
+                    error!("Failed to read playlist dir due to: {e}");
+                    if let Err(e) = socket.send(ServerMessage::Error(
+                        shared::error::server::Error::Io(e.to_string()),
+                    )) {
+                        error!("Failed to send error to client due to: {e}");
+                    }
+                    return;
+                }
+            };
+
+            let playlists = read_dir
+                .into_iter()
+                .flatten()
+                .filter(|item| item.file_type().is_ok() && item.file_type().unwrap().is_file())
+                .filter(|item| item.file_name().to_string_lossy().ends_with(".playlist"))
+                .flat_map(|item| {
+                    shared::playlist::Playlist::load(
+                        uuid::Uuid::from_str(
+                            &item.file_name().to_string_lossy().replace(".playlist", ""),
+                        )
+                        .unwrap(),
+                        &crate::config::songs_path(),
+                    )
+                })
+                .collect::<Vec<_>>();
+
+            if let Err(e) = socket.send(ServerMessage::Playlists(playlists)) {
+                error!("Failed to send library to client due to: {e}");
+            }
+        }
         shared::command::PlaylistCommand::GetOne(uuid) => {
             match shared::playlist::Playlist::load(uuid, &crate::config::songs_path()) {
                 Ok(playlist) => {
@@ -341,7 +374,24 @@ fn handle_playlist_command(
                 }
             }
         }
-        shared::command::PlaylistCommand::Create(playlist) => todo!(),
+        shared::command::PlaylistCommand::Create(playlist) => {
+            match playlist.save(&crate::config::songs_path()) {
+                Ok(_) => {
+                    let uuid = *playlist.uuid();
+                    if let Err(e) = socket.send(ServerMessage::PlaylistCreated(playlist)) {
+                        error!("Failed to send playlist({uuid}) creation response due to: {e}");
+                    }
+                }
+                Err(e) => {
+                    let uuid = *playlist.uuid();
+                    if let Err(e) =
+                        socket.send(ServerMessage::Error(crate::error::Error::Playlist(e)))
+                    {
+                        error!("Failed to send playlist({uuid}) deletion error due to: {e}");
+                    }
+                }
+            }
+        }
         shared::command::PlaylistCommand::Delete(uuid) => {
             match shared::playlist::Playlist::delete(uuid, &crate::config::songs_path()) {
                 Ok(_) => {
@@ -358,7 +408,10 @@ fn handle_playlist_command(
                 }
             }
         }
-        shared::command::PlaylistCommand::Rename(uuid, new_name) => {
+        shared::command::PlaylistCommand::Rename {
+            playlist_uuid: uuid,
+            new_name,
+        } => {
             let mut playlist =
                 match shared::playlist::Playlist::load(uuid, &crate::config::songs_path()) {
                     Ok(p) => p,

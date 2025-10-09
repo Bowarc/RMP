@@ -44,7 +44,10 @@ pub enum PlaylistCommand {
     GetOne(uuid::Uuid), // The id of the playlist
     Create(crate::playlist::Playlist),
     Delete(uuid::Uuid),
-    Rename(uuid::Uuid, String),
+    Rename {
+        playlist_uuid: uuid::Uuid,
+        new_name: String,
+    },
     AddToPlaylist {
         playlist_uuid: uuid::Uuid,
         song_uuid: uuid::Uuid,

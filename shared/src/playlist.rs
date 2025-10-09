@@ -82,6 +82,13 @@ impl Playlist {
 }
 
 impl Playlist {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            uuid: uuid::Uuid::new_v4(),
+            name: name.into(),
+            songs: Default::default(),
+        }
+    }
     pub fn name(&self) -> &str {
         &self.name
     }
