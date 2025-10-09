@@ -1,5 +1,6 @@
-pub mod downloader;
+pub mod downloader;    
 pub mod player;
+pub mod playlist;
 
 #[macro_export]
 macro_rules! send_and_wait {
