@@ -8,17 +8,21 @@ path = "src/lib.rs"
 name = "shared"
 crate-type = ["rlib"]
 
+[features]
+server = ["dep:ffprobe"] # Enables server only functionalities like fs access
+
 [dependencies]
-serde = { version = "1.0.208", features = ["derive"] }
+serde = { version = "1.0.208", features = [
+  "derive",
+] } # Also used by clients for deserialization
+ron.workspace = true # Also used by clients for errors
 thiserror.workspace = true
 uuid.workspace = true
 
 networking.workspace = true
-ron.workspace = true
 derivative = "2.2.0"
 
 rodio.workspace = true
-
 log.workspace = true
-ffprobe = "0.4.0"
 
+ffprobe = { version = "0.4.0", optional = true } # Not used by clients as this is currently only used for manipulating audio files, which clients don't interact with

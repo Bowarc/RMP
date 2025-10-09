@@ -3,6 +3,7 @@ pub enum Command {
     GetLibrary,
     Player(PlayerCommand),
     Downloader(DownloaderCommand),
+    Playlist(PlaylistCommand),
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
@@ -14,7 +15,7 @@ pub enum PlayerCommand {
     GetCurrentlyPlaying,
 
     AddToQueue(uuid::Uuid),
-    RemoveFromQueue(uuid::Uuid),
+    RemoveFromQueue(u16),
     GetQueue,
     ClearQueue,
 
@@ -25,9 +26,8 @@ pub enum PlayerCommand {
     GetPosition,
 
     // Skip(u8), // Skip x songs
-
     SetDeviceByName(String),
-    GetDeviceName
+    GetDeviceName,
 }
 
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
@@ -38,15 +38,37 @@ pub enum DownloaderCommand {
     FetchQueue,
 }
 
+#[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+pub enum PlaylistCommand {
+    GetAll,
+    GetOne(uuid::Uuid), // The id of the playlist
+    Create(crate::playlist::Playlist),
+    Delete(uuid::Uuid),
+    Rename(uuid::Uuid, String),
+    AddToPlaylist {
+        playlist_uuid: uuid::Uuid,
+        song_uuid: uuid::Uuid,
+    },
+    RemoveFromPlaylist {
+        playlist_uuid: uuid::Uuid,
+        song_index: u16, // That's 65k, it should be enough
+    },
+}
 
-impl From<PlayerCommand> for Command{
+impl From<PlayerCommand> for Command {
     fn from(pc: PlayerCommand) -> Self {
         Command::Player(pc)
     }
 }
 
-impl From<DownloaderCommand> for Command{
+impl From<DownloaderCommand> for Command {
     fn from(dc: DownloaderCommand) -> Self {
         Command::Downloader(dc)
+    }
+}
+
+impl From<PlaylistCommand> for Command {
+    fn from(pc: PlaylistCommand) -> Self {
+        Command::Playlist(pc)
     }
 }

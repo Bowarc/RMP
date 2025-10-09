@@ -18,8 +18,10 @@ impl Song {
     pub fn new(uuid: uuid::Uuid, metadata: Metadata) -> Self {
         Self { uuid, metadata }
     }
-    pub fn load(uuid: uuid::Uuid, song_folder_path: &std::path::Path) -> Option<Self> {
-        let path = song_folder_path
+
+    #[cfg(feature = "server")]
+    pub fn load(uuid: uuid::Uuid, song_dir_path: &std::path::Path) -> Option<Self> {
+        let path = song_dir_path
             .canonicalize()
             .ok()?
             .join(uuid.as_hyphenated().to_string());
@@ -31,9 +33,9 @@ impl Song {
 
     pub fn data(
         &self,
-        song_folder_path: &std::path::Path,
+        song_dir_path: &std::path::Path,
     ) -> Option<std::io::BufReader<std::fs::File>> {
-        let path = song_folder_path
+        let path = song_dir_path
             .canonicalize()
             .ok()?
             .join(self.uuid.as_hyphenated().to_string());
@@ -56,6 +58,14 @@ impl Metadata {
         Self { title, duration }
     }
 
+    pub fn title(&self) -> &String {
+        &self.title
+    }
+    pub fn duration(&self) -> &std::time::Duration {
+        &self.duration
+    }
+
+    #[cfg(feature = "server")]
     fn load(path: &std::path::Path) -> Option<Self> {
         use ron::de::from_bytes;
         use std::io::Read as _;
@@ -69,19 +79,16 @@ impl Metadata {
 
         from_bytes(&bytes).ok()
     }
-    pub fn title(&self) -> &String {
-        &self.title
-    }
-    pub fn duration(&self) -> &std::time::Duration {
-        &self.duration
-    }
-    pub fn write_to_file(&self, uuid: uuid::Uuid, songs_path: std::path::PathBuf) -> Result<(), crate::error::ImporterError> {
+
+    #[cfg(feature = "server")]
+    pub fn write_to_file(
+        &self,
+        uuid: uuid::Uuid,
+        songs_path: std::path::PathBuf,
+    ) -> Result<(), crate::error::ImporterError> {
         use std::fs::OpenOptions;
-        let path = {
-            let mut p = songs_path;
-            p.push(format!("{uuid}.metadata"));
-            p
-        };
+
+        let path = songs_path.join(format!("{uuid}.metadata"));
 
         let file = OpenOptions::new().create_new(true).write(true).open(path)?;
 
@@ -91,6 +98,7 @@ impl Metadata {
     }
 }
 
+#[cfg(feature = "server")]
 ///
 /// Tries to decode the local_file_path file, supported formats are:
 ///     MP3, WAV, flac and vorbis (I don't really plan on using the 2 lasts)
@@ -104,7 +112,7 @@ pub fn convert_local(
     // TODO: rename this to something closer to local library path, with #11
     local_storage_path: std::path::PathBuf,
 ) -> Option<Song> {
-    use rodio::{decoder::Decoder, Source};
+    use rodio::{Source, decoder::Decoder};
     use std::fs::OpenOptions;
 
     let uuid = uuid::Uuid::new_v4();
@@ -130,17 +138,9 @@ pub fn convert_local(
         .unwrap_or(DEFAULT_NAME)
         .to_string();
 
-    let meta_file_path = {
-        let mut p = local_storage_path.clone();
-        p.push(format!("{uuid}.metadata"));
-        p
-    };
+    let meta_file_path = local_storage_path.join(format!("{uuid}.metadata"));
 
-    let data_file_path = {
-        let mut p = local_storage_path.clone();
-        p.push(uuid.as_hyphenated().to_string());
-        p
-    };
+    let data_file_path = local_storage_path.join(uuid.as_hyphenated().to_string());
 
     let decoder = Decoder::new(std::fs::File::open(&local_file_path).ok()?)
         .inspect_err(|e| {

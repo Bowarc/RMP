@@ -4,7 +4,6 @@ extern crate log;
 mod config;
 mod downloader;
 mod player;
-mod playlist_manager;
 mod server;
 
 use shared::error::server as error;

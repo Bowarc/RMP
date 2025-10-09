@@ -18,6 +18,9 @@ pub fn new_nonblocking() -> Result<Socket, crate::error::client::SocketError> {
     let stream = TcpStream::connect(DEFAULT_ADDRESS)
         .map_err(|e| SocketError::Initialisation(e.to_string()))?;
 
-    stream.set_nonblocking(true).unwrap();
+    stream
+        .set_nonblocking(true)
+        .map_err(|e| SocketError::Initialisation(e.to_string()))?;
+
     Ok(Socket::new(stream))
 }

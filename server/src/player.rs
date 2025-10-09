@@ -41,5 +41,3 @@ pub trait Player {
 
     fn update(&mut self) -> Result<()>;
 }
-
-// pub type playlist = Vec<uuid::Uuid>;

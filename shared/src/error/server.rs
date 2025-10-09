@@ -12,22 +12,20 @@ pub enum Error {
     #[error(transparent)]
     Downloader(#[from] DownloaderError),
 
-    #[error("{0}")]
-    Io(String)
+    #[error(transparent)]
+    Playlist(#[from] PlaylistError),
 
-    
+    #[error("{0}")]
+    Io(String),
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub enum PlayerError {
-    #[error("This is a test error and shouldn't be used in any public context")]
-    Test,
-
     #[error("The player is not currently playing")]
     NotPlaying,
 
-    #[error("The current stack is empty")]
-    EmptyStack,
+    #[error("The current queue is empty")]
+    EmptyQueue,
 
     #[error("{name} player failled to initialize due to: {error}")]
     Initialisation { name: String, error: String },
@@ -49,16 +47,23 @@ pub enum PlayerError {
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
-pub enum DownloaderError{
-    #[error("This is a test error and shouldn't be used in any public context")]
-    Test,
+pub enum DownloaderError {
     #[error("Failed to parse '{url}' due to: {reason}")]
-    UrlParse{
-        url: String,
-        reason: String,
-    },
+    UrlParse { url: String, reason: String },
+
     #[error("The provider '{0}' is not supported")]
     ProviderNotSupported(String),
+
     #[error("Playlists are not currently supported")]
-    PlaylistNotSupported
+    PlaylistNotSupported,
+}
+
+#[derive(Debug, thiserror::Error, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+pub enum PlaylistError {
+    #[error("Could not read file: {target} due to: {error}")]
+    FileRead { target: String, error: String },
+    #[error("Could not write file: {target} due to: {error}")]
+    FileWrite { target: String, error: String },
+    #[error("Could not delete file: {target} due to: {error}")]
+    FileDelete { target: String, error: String },
 }

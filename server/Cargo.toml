@@ -8,7 +8,7 @@ name = "rmp_server"
 path = "src/main.rs"
 
 [dependencies]
-shared = { path = "../shared" }
+shared = { path = "../shared", features = ["server"] }
 models = { path = "../models" }
 
 stp = { git = "https://github.com/bowarc/stp" }
@@ -26,4 +26,3 @@ time.workspace = true
 networking.workspace = true
 uuid.workspace = true
 rodio.workspace = true
-

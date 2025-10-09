@@ -102,6 +102,7 @@ pub fn recv_commands(
                     }
                 }
                 Command::Downloader(dc) => handle_downloader_command(socket, download_mgr, dc),
+                Command::Playlist(pc) => handle_playlist_command(socket, pc),
                 Command::GetLibrary => {
                     let songs_path = crate::config::songs_path();
 
@@ -168,7 +169,7 @@ pub fn handle_player_command(
         PlayerCommand::Play => {
             music_player.play()?;
 
-            // This will error if the server is not connected to any client but we don't care as the server is autonomous */
+            // This will error if the server is not connected to any client but we don't care as the server is autonomous
             let _ = socket.send(ServerMessage::PlayerStatePlay);
         }
         PlayerCommand::Pause => {
@@ -210,7 +211,7 @@ pub fn handle_player_command(
         }
 
         PlayerCommand::SetVolume(val) => {
-            music_player.set_volume(val)?;
+            music_player.set_volume(val.max(0.))?;
             let _ = socket.send(ServerMessage::PlayerVolume(music_player.volume()?));
         }
         PlayerCommand::GetVolume => {
@@ -313,5 +314,143 @@ pub fn handle_downloader_command(
             }
         }
         DownloaderCommand::FetchQueue => unimplemented!(),
+    }
+}
+
+fn handle_playlist_command(
+    socket: &mut networking::Socket<shared::message::ClientMessage, shared::message::ServerMessage>,
+    pc: shared::command::PlaylistCommand,
+) {
+    use shared::message::ServerMessage;
+
+    match pc {
+        shared::command::PlaylistCommand::GetAll => {}
+        shared::command::PlaylistCommand::GetOne(uuid) => {
+            match shared::playlist::Playlist::load(uuid, &crate::config::songs_path()) {
+                Ok(playlist) => {
+                    if let Err(e) = socket.send(ServerMessage::Playlist(playlist)) {
+                        error!("Failed to respond to playlist({uuid}) request due to: {e}");
+                    }
+                }
+                Err(e) => {
+                    if let Err(e) =
+                        socket.send(ServerMessage::Error(crate::error::Error::Playlist(e)))
+                    {
+                        error!("Failed to send playlist({uuid}) load error({e}) due to: {e}")
+                    }
+                }
+            }
+        }
+        shared::command::PlaylistCommand::Create(playlist) => todo!(),
+        shared::command::PlaylistCommand::Delete(uuid) => {
+            match shared::playlist::Playlist::delete(uuid, &crate::config::songs_path()) {
+                Ok(_) => {
+                    if let Err(e) = socket.send(ServerMessage::PlaylistDeleted(uuid)) {
+                        error!("Failed to send playlist({uuid}) deletion response due to: {e}");
+                    }
+                }
+                Err(e) => {
+                    if let Err(e) =
+                        socket.send(ServerMessage::Error(crate::error::Error::Playlist(e)))
+                    {
+                        error!("Failed to send playlist({uuid}) deletion error due to: {e}");
+                    }
+                }
+            }
+        }
+        shared::command::PlaylistCommand::Rename(uuid, new_name) => {
+            let mut playlist =
+                match shared::playlist::Playlist::load(uuid, &crate::config::songs_path()) {
+                    Ok(p) => p,
+                    Err(e) => panic!("{e}"),
+                };
+
+            playlist.set_name(new_name);
+
+            match playlist.save(&crate::config::songs_path()) {
+                Ok(_) => {
+                    if let Err(e) = socket.send(ServerMessage::PlaylistUpdated(playlist)) {
+                        error!(
+                            "Failed to send playlist({uuid}) update message to client due to: {e}"
+                        )
+                    }
+                }
+                Err(e) => {
+                    if let Err(e) =
+                        socket.send(ServerMessage::Error(crate::error::Error::Playlist(e)))
+                    {
+                        error!("Failed to send playlist({uuid}) update error to client due to: {e}")
+                    }
+                }
+            }
+        }
+        shared::command::PlaylistCommand::AddToPlaylist {
+            playlist_uuid,
+            song_uuid,
+        } => {
+            let mut playlist =
+                match shared::playlist::Playlist::load(playlist_uuid, &crate::config::songs_path())
+                {
+                    Ok(p) => p,
+                    Err(e) => panic!("{e}"),
+                };
+
+            // FIXME: Rework Errors to allow for more abstract errors like 'Failed to read song file' instead of failed to read file /a/b/c.meta
+            let song = shared::song::Song::load(song_uuid, &crate::config::songs_path()).unwrap();
+
+            playlist.songs_mut().push(song);
+
+            match playlist.save(&crate::config::songs_path()) {
+                Ok(_) => {
+                    let uuid = *playlist.uuid();
+                    if let Err(e) = socket.send(ServerMessage::PlaylistUpdated(playlist)) {
+                        error!(
+                            "Failed to send playlist({uuid}) update message to client due to: {e}"
+                        )
+                    }
+                }
+                Err(e) => {
+                    let uuid = *playlist.uuid();
+                    if let Err(e) =
+                        socket.send(ServerMessage::Error(crate::error::Error::Playlist(e)))
+                    {
+                        error!("Failed to send playlist({uuid}) update error to client due to: {e}")
+                    }
+                }
+            }
+        }
+        shared::command::PlaylistCommand::RemoveFromPlaylist {
+            playlist_uuid,
+            song_index,
+        } => {
+            let mut playlist =
+                match shared::playlist::Playlist::load(playlist_uuid, &crate::config::songs_path())
+                {
+                    Ok(p) => p,
+                    Err(e) => panic!("{e}"),
+                };
+
+            // FIXME: This can panic if the index is outside the bounds
+            playlist.songs_mut().remove(song_index as usize);
+
+            match playlist.save(&crate::config::songs_path()) {
+                Ok(_) => {
+                    let uuid = *playlist.uuid();
+                    if let Err(e) = socket.send(ServerMessage::PlaylistUpdated(playlist)) {
+                        error!(
+                            "Failed to send playlist({uuid}) update message to client due to: {e}"
+                        )
+                    }
+                }
+                Err(e) => {
+                    let uuid = *playlist.uuid();
+                    if let Err(e) =
+                        socket.send(ServerMessage::Error(crate::error::Error::Playlist(e)))
+                    {
+                        error!("Failed to send playlist({uuid}) update error to client due to: {e}")
+                    }
+                }
+            }
+        }
     }
 }

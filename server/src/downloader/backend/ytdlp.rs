@@ -51,7 +51,7 @@ pub fn start(
         panic!("Playlists are not supported right now");
     }
 
-    let song_dir = crate::config::songs_path().display().to_string();
+    let song_dir = cfg.song_path.display().to_string();
 
     let uuid = uuid::Uuid::new_v4();
 
@@ -182,11 +182,7 @@ pub fn start(
         // Since we added the `"--write-info-json"` arg to yt-dlp,
         // we *should* have a {uuid}.info.json file
         // Let's parse that.
-        let json_info_path = {
-            let mut p = crate::config::songs_path();
-            p.push(format!("{uuid}.info.json"));
-            p
-        };
+        let json_info_path = cfg.song_path.join(format!("{uuid}.info.json"));
 
         debug!("Checking {json_info_path:?}" );
 
@@ -212,19 +208,14 @@ pub fn start(
 
         let metadata = shared::song::Metadata::new(json_info.title, std::time::Duration::from_secs_f64(json_info.duration));
 
-        metadata.write_to_file(uuid, crate::config::songs_path()).unwrap();
+        metadata.write_to_file(uuid, cfg.song_path.clone()).unwrap();
 
         // Aaaand remove the the extension from the output file
 
-        std::fs::rename({
-            let mut p = cfg.song_path.clone();
-            p.push(format!("{uuid}.mp3"));
-            p
-        }, {
-            let mut p = cfg.song_path.clone();
-            p.push(uuid.as_hyphenated().to_string());
-            p
-        }).unwrap();
+        std::fs::rename(
+            cfg.song_path.join(format!("{uuid}.mp3")),
+            cfg.song_path.join(uuid.as_hyphenated().to_string()),
+        ).unwrap();
 
         *download_phase.lock().unwrap() = shared::download::Phase::Done;
     });

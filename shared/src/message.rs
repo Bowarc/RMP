@@ -9,11 +9,12 @@ pub enum ClientMessage {
 
 #[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ServerMessage {
+    // Sync stuff
     Ping,
     Pong,
     Exit,
 
-    // player
+    // Player
     PlayerStatePause,
     PlayerStatePlay, // could use an enum w/ PlayerStateChanged but it might be overkill
 
@@ -27,15 +28,22 @@ pub enum ServerMessage {
 
     Position(std::time::Duration),
 
+    // Downloader
     CurrentDownloads(Vec<crate::download::Report>),
     DownloadQueue(Vec<String>),
 
-    // downloader
-    Error(crate::error::server::Error),
+    // Playlists
+    Playlists(Vec<crate::playlist::Playlist>),
+    Playlist(crate::playlist::Playlist),
+    PlaylistCreated(crate::playlist::Playlist),
+    PlaylistDeleted(uuid::Uuid),
+    PlaylistUpdated(crate::playlist::Playlist),
 
-    // others
-    Library(Vec<crate::song::Song>)
-    
+    // Others
+    Library(Vec<crate::song::Song>),
+
+    // Errors
+    Error(crate::error::server::Error),
 }
 
 impl networking::Message for ClientMessage {
@@ -92,8 +100,15 @@ impl From<super::command::PlayerCommand> for ClientMessage {
 }
 
 impl From<super::command::DownloaderCommand> for ClientMessage {
-    fn from(pc: super::command::DownloaderCommand) -> ClientMessage {
+    fn from(dc: super::command::DownloaderCommand) -> ClientMessage {
         use super::command::Command;
-        ClientMessage::Command(Command::Downloader(pc))
+        ClientMessage::Command(Command::Downloader(dc))
+    }
+}
+
+impl From<super::command::PlaylistCommand> for ClientMessage {
+    fn from(pc: super::command::PlaylistCommand) -> ClientMessage {
+        use super::command::Command;
+        ClientMessage::Command(Command::Playlist(pc))
     }
 }
