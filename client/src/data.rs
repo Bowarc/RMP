@@ -15,3 +15,19 @@ pub struct DownloaderData {
     pub new_download_url: String,
     pub current_downloads: Vec<shared::download::Report>, // Add a struct containing download reports, this isn't done in server atm
 }
+
+#[derive(Default)]
+pub struct PlaylistData {
+    pub all: Vec<shared::playlist::Playlist>,
+    pub current: Option<uuid::Uuid>,
+}
+
+impl PlaylistData {
+    pub fn get_current(&self) -> Option<&shared::playlist::Playlist> {
+        let current = self.current.as_ref()?;
+        self.get(current)
+    }
+    pub fn get(&self, uuid: &uuid::Uuid) -> Option<&shared::playlist::Playlist> {
+        self.all.iter().find(|p| p.uuid() == uuid)
+    }
+}

@@ -1,4 +1,7 @@
 pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
+    // Quality code right there LMFAOO
+    static mut ALL_SONGS: bool = false;
+
     let mut to_send = Vec::new();
 
     let mut request_play = |song: &shared::song::Song| {
@@ -20,13 +23,92 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
         ));
     };
 
+    if !client.playlist_data().all.is_empty() {
+        super::center(
+            ui,
+            |ui| {
+                #[allow(clippy::useless_vec)]
+                // let playlists = &client.playlist_data().all;
+                let current_playlist = client
+                    .playlist_data()
+                    .current
+                    .and_then(|uuid| client.playlist_data().get(&uuid))
+                    .unwrap_or_else(|| client.playlist_data().all.first().unwrap());
+
+                let current_uuid = *current_playlist.uuid();
+
+                egui::ComboBox::from_id_salt("tst")
+                    .selected_text(
+                        egui::RichText::new(if unsafe { ALL_SONGS } {
+                            "Library"
+                        } else {
+                            current_playlist.name()
+                        })
+                        .heading()
+                        .size(23.),
+                    )
+                    .show_ui(ui, |ui| {
+                        {
+                            // Quality code right there LMFAOO
+                            let resp = if unsafe { ALL_SONGS } {
+                                ui.selectable_value(&mut (), (), "All")
+                            } else {
+                                ui.selectable_value(&mut 0, 1, "All")
+                            };
+                            if resp.clicked() {
+                                client.playlist_data_mut().current = None;
+                                unsafe { ALL_SONGS = true };
+                            }
+                        }
+                        for i in 0..client.playlist_data().all.len() {
+                            let playlist = client.playlist_data().all.get(i).unwrap();
+
+                            // Quality code right there LMFAOO
+                            let resp = if playlist.uuid() == &current_uuid && unsafe { !ALL_SONGS }
+                            {
+                                ui.selectable_value(&mut 0, 0, playlist.name())
+                            } else {
+                                ui.selectable_value(&mut 0, 1, playlist.name())
+                            };
+
+                            if resp.clicked() {
+                                info!("Changed to: {}", playlist.uuid());
+                                client.playlist_data_mut().current = Some(*playlist.uuid());
+                                unsafe { ALL_SONGS = false };
+                            }
+                        }
+                    });
+
+                if client.playlist_data().current.is_none() && unsafe { !ALL_SONGS } {
+                    debug!("Current set");
+                    client.playlist_data_mut().current =
+                        Some(*client.playlist_data().all.first().unwrap().uuid());
+                }
+            },
+            "song_list_playlist_name",
+        );
+
+        ui.add_space(30.);
+    }
+
+    let song_list = if unsafe { ALL_SONGS } || client.playlist_data().current.is_none() {
+        &client.player_data().song_list
+    } else {
+        client.playlist_data().get_current().unwrap().songs()
+    };
+
+    // let song_list = match client.playlist_data().get_current() {
+    //     Some(p) => p.songs(),
+    //     None => &client.player_data().song_list,
+    // };
+
     super::center(
         ui,
         |ui| {
             ui.vertical(|ui| {
                 ui.set_min_width(150.0);
 
-                for song in client.player_data().song_list.iter() {
+                for song in song_list.iter() {
                     if ui.button(song.metadata().title()).clicked() {
                         request_play(song)
                     }
@@ -40,44 +122,3 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
         error!("Failed to send a player message due to: {e}");
     }
 }
-
-// super::center(
-//     ui,
-//     |ui| {
-//         let id = egui::Id::new("current_playlist_name");
-//         #[allow(clippy::useless_vec)]
-//         let playlists = vec!["Playlist1", "Playlist2", "Playlist3"];
-
-//         let get = || -> Option<String> { ui.memory(|mem| mem.data.get_temp(id)) };
-
-//         let set = |ui: &egui::Ui, val: &str| ui.memory_mut(|mem| mem.data.insert_temp(id, val.to_string()));
-
-//         if get().is_none() {
-//             set(ui, playlists.first().unwrap())
-//         }
-
-//         let mut current_playlist_name = get().unwrap();
-
-//         egui::ComboBox::from_id_salt("tst")
-//             .selected_text(
-//                 egui::RichText::new(&current_playlist_name)
-//                     .heading()
-//                     .size(23.),
-//             )
-//             .show_ui(ui, |ui| {
-//                 for playlist in playlists.iter() {
-//                     let resp = ui.selectable_value(
-//                         &mut current_playlist_name,
-//                         playlist.to_string(),
-//                         *playlist,
-//                     );
-
-//                     if resp.changed() {
-//                         println!("Changed to: {current_playlist_name}");
-//                         set(ui, &current_playlist_name)
-//                     }
-//                 }
-//             });
-//     },
-//     "song_list_playlist_name",
-// );

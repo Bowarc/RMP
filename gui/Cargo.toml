@@ -13,5 +13,6 @@ egui = "0.32.0"
 shared = { path = "../shared" }
 client = { path = "../client" }
 log.workspace = true
+uuid.workspace = true
 logger.workspace = true
 time.workspace = true

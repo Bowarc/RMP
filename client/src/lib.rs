@@ -7,6 +7,7 @@ pub struct Client {
     socket: shared::Socket,
     player_data: data::MusicPlayerData,
     downloader_data: data::DownloaderData,
+    playlist_data: data::PlaylistData,
     ping: std::time::Duration,
 }
 
@@ -40,6 +41,7 @@ impl Client {
             socket,
             player_data: data::MusicPlayerData::default(),
             downloader_data: data::DownloaderData::default(),
+            playlist_data: data::PlaylistData::default(),
             ping,
         }
     }
@@ -100,6 +102,8 @@ impl Client {
             ServerMessage::CurrentDownloads(reports) => {
                 self.downloader_data.current_downloads = reports
             }
+            ServerMessage::Playlists(all) => self.playlist_data.all = all,
+
             ServerMessage::Error(error) => return Ok(Some(error)),
 
             _ => debug!("Unhandled message: {message:?}"),
@@ -140,6 +144,12 @@ impl Client {
     }
     pub fn downloader_data_mut(&mut self) -> &mut data::DownloaderData {
         &mut self.downloader_data
+    }
+    pub fn playlist_data(&self) -> &data::PlaylistData {
+        &self.playlist_data
+    }
+    pub fn playlist_data_mut(&mut self) -> &mut data::PlaylistData {
+        &mut self.playlist_data
     }
     pub fn ping(&self) -> &std::time::Duration {
         &self.ping

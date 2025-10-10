@@ -266,7 +266,7 @@ fn load_fonts(ectx: &egui::Context) {
 
 fn create_client() -> client::Client {
     use shared::{
-        command::{Command, PlayerCommand},
+        command::{Command, PlayerCommand, PlaylistCommand},
         message::ClientMessage,
     };
 
@@ -278,6 +278,7 @@ fn create_client() -> client::Client {
         ClientMessage::Command(PlayerCommand::GetPlayState.into()),
         ClientMessage::Command(PlayerCommand::GetQueue.into()),
         ClientMessage::Command(PlayerCommand::GetPosition.into()),
+        ClientMessage::Command(PlaylistCommand::GetAll.into()),
         ClientMessage::Command(Command::GetLibrary),
     ]) {
         error!("Failed to send an init message due to: {e}");
