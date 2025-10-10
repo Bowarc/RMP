@@ -18,14 +18,8 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
 
                 let current_uuid = *current_playlist.uuid();
 
-                let mut force_open = false;
                 egui::ComboBox::from_id_salt("tst")
-                    .close_behavior(if force_open {
-                        egui::PopupCloseBehavior::IgnoreClicks
-                    } else {
-                        egui::PopupCloseBehavior::CloseOnClickOutside
-                    })
-                    // .close_behavior(egui::PopupCloseBehavior::CloseOnClick)
+                    .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
                     .selected_text(
                         egui::RichText::new(if unsafe { ALL_SONGS } {
                             "Library"
@@ -130,7 +124,7 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
                                                 }
                                             },
                                         );
-                                    if resp.unwrap().response.should_close() && !force_open {
+                                    if resp.unwrap().response.should_close() {
                                         unsafe { TAG = false }
                                     }
                                 }
@@ -156,25 +150,26 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
         client.playlist_data().get_current().unwrap().songs()
     };
 
-    let mut request_play = |song: &shared::song::Song| {
-        to_send.push(shared::message::ClientMessage::Command(
-            shared::command::PlayerCommand::AddToQueue(song.uuid()).into(),
-        ));
-
-        // This is to be able to add a song to a paused existing queue and keep the player paused
-        if !client.player_data().playing && client.player_data().song_queue.is_empty() {
+    let mut request_play =
+        |song: &shared::song::Song, to_send: &mut Vec<shared::message::ClientMessage>| {
             to_send.push(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::Play.into(),
+                shared::command::PlayerCommand::AddToQueue(song.uuid()).into(),
             ));
-        }
 
-        to_send.push(shared::message::ClientMessage::Command(
-            shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
-        ));
-        to_send.push(shared::message::ClientMessage::Command(
-            shared::command::PlayerCommand::GetPlayState.into(),
-        ));
-    };
+            // This is to be able to add a song to a paused existing queue and keep the player paused
+            if !client.player_data().playing && client.player_data().song_queue.is_empty() {
+                to_send.push(shared::message::ClientMessage::Command(
+                    shared::command::PlayerCommand::Play.into(),
+                ));
+            }
+
+            to_send.push(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
+            ));
+            to_send.push(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::GetPlayState.into(),
+            ));
+        };
 
     super::center(
         ui,
@@ -183,9 +178,50 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
                 ui.set_min_width(150.0);
 
                 for song in song_list.iter() {
-                    if ui.button(song.metadata().title()).clicked() {
-                        request_play(song)
-                    }
+                    ui.horizontal(|ui| {
+                        ui.horizontal_wrapped(|ui| {
+                            egui::containers::Popup::menu(&ui.button("a"))
+                                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+                                .align(egui::RectAlign::from_align2(egui::Align2::CENTER_CENTER))
+                                // .open(true)
+                                .show(|ui| {
+                                    for playlist in &client.playlist_data().all {
+                                        if ui.button(playlist.name()).clicked() {
+                                            to_send.extend_from_slice(&[
+                                                shared::message::ClientMessage::Command(shared::command::PlaylistCommand::AddToPlaylist { playlist_uuid: *playlist.uuid(), song_uuid: song.uuid() }.into()),
+                                                shared::message::ClientMessage::Command(shared::command::PlaylistCommand::GetAll.into())
+                                            ]);
+                                            debug!("Playlist clicked");
+                                        }
+                                    }
+                                });
+                            egui::containers::Popup::menu(&ui.button("r"))
+                                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+                                .align(egui::RectAlign::from_align2(egui::Align2::CENTER_CENTER))
+                                // .open(true)
+                                .show(|ui| {
+                                    for playlist in &client.playlist_data().all {
+                                        if ui.button(playlist.name()).clicked() {
+                                            to_send.extend_from_slice(&[
+                                                shared::message::ClientMessage::Command(shared::command::PlaylistCommand::RemoveFromPlaylist { playlist_uuid: *playlist.uuid(), song_index: playlist.songs().iter().position(|s| s.uuid() == song.uuid()).unwrap() as u16 }.into()),
+                                                shared::message::ClientMessage::Command(shared::command::PlaylistCommand::GetAll.into())
+                                            ]);
+                                            debug!("Playlist clicked");
+                                        }
+                                    }
+                                });
+                            // if resp.unwrap().response.should_close() {
+                            //     debug!("Off");
+                            //     unsafe { TAG = false }
+                            // }
+                            // }
+                        });
+                        // ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button(song.metadata().title()).clicked() {
+                            request_play(song, &mut to_send)
+                        }
+                        // })
+                    });
                 }
             });
         },
