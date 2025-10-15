@@ -47,6 +47,7 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
                             if resp.clicked() {
                                 client.playlist_data_mut().current = None;
                                 unsafe { ALL_SONGS = true };
+                                ui.close();
                             }
                         }
                         for i in 0..client.playlist_data().all.len() {
@@ -62,6 +63,7 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
                             {
                                 client.playlist_data_mut().current = Some(*playlist.uuid());
                                 unsafe { ALL_SONGS = false };
+                                ui.close();
                             }
                         }
                         ui.add_space(10.);
@@ -70,13 +72,9 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
                         super::center(
                             ui,
                             |ui| {
-                                // if ui.add_sized(egui::Vec2::new(5., 1.), egui::Button::new("+")).clicked(){
-                                //     info!("Hi")
-                                // }
                                 let resp = ui.button("+");
                                 static mut TAG: bool = false;
                                 if resp.clicked() {
-                                    debug!("Triggered");
                                     unsafe { TAG = !TAG };
                                 }
                                 if unsafe { TAG } {
@@ -150,26 +148,26 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
         client.playlist_data().get_current().unwrap().songs()
     };
 
-    let mut request_play =
-        |song: &shared::song::Song, to_send: &mut Vec<shared::message::ClientMessage>| {
-            to_send.push(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::AddToQueue(song.uuid()).into(),
-            ));
+    let request_play = |song: &shared::song::Song,
+                        to_send: &mut Vec<shared::message::ClientMessage>| {
+        to_send.push(shared::message::ClientMessage::Command(
+            shared::command::PlayerCommand::AddToQueue(song.uuid()).into(),
+        ));
 
-            // This is to be able to add a song to a paused existing queue and keep the player paused
-            if !client.player_data().playing && client.player_data().song_queue.is_empty() {
-                to_send.push(shared::message::ClientMessage::Command(
-                    shared::command::PlayerCommand::Play.into(),
-                ));
-            }
+        // This is to be able to add a song to a paused existing queue and keep the player paused
+        if !client.player_data().playing && client.player_data().song_queue.is_empty() {
+            to_send.push(shared::message::ClientMessage::Command(
+                shared::command::PlayerCommand::Play.into(),
+            ));
+        }
 
-            to_send.push(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
-            ));
-            to_send.push(shared::message::ClientMessage::Command(
-                shared::command::PlayerCommand::GetPlayState.into(),
-            ));
-        };
+        to_send.push(shared::message::ClientMessage::Command(
+            shared::command::PlayerCommand::GetCurrentlyPlaying.into(),
+        ));
+        to_send.push(shared::message::ClientMessage::Command(
+            shared::command::PlayerCommand::GetPlayState.into(),
+        ));
+    };
 
     super::center(
         ui,
@@ -191,31 +189,47 @@ pub fn render(ui: &mut egui::Ui, client: &mut client::Client) {
                                                 shared::message::ClientMessage::Command(shared::command::PlaylistCommand::AddToPlaylist { playlist_uuid: *playlist.uuid(), song_uuid: song.uuid() }.into()),
                                                 shared::message::ClientMessage::Command(shared::command::PlaylistCommand::GetAll.into())
                                             ]);
-                                            debug!("Playlist clicked");
                                         }
                                     }
                                 });
-                            egui::containers::Popup::menu(&ui.button("r"))
-                                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
-                                .align(egui::RectAlign::from_align2(egui::Align2::CENTER_CENTER))
-                                // .open(true)
-                                .show(|ui| {
-                                    for playlist in &client.playlist_data().all {
-                                        if ui.button(playlist.name()).clicked() {
-                                            to_send.extend_from_slice(&[
-                                                shared::message::ClientMessage::Command(shared::command::PlaylistCommand::RemoveFromPlaylist { playlist_uuid: *playlist.uuid(), song_index: playlist.songs().iter().position(|s| s.uuid() == song.uuid()).unwrap() as u16 }.into()),
-                                                shared::message::ClientMessage::Command(shared::command::PlaylistCommand::GetAll.into())
-                                            ]);
-                                            debug!("Playlist clicked");
-                                        }
-                                    }
-                                });
+                            // egui::containers::Popup::menu(&ui.button("r"))
+                            //     .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+                            //     .align(egui::RectAlign::from_align2(egui::Align2::CENTER_CENTER))
+                            //     // .open(true)
+                            //     .show(|ui| {
+                            //         for playlist in &client.playlist_data().all {
+                            //             if ui.button(playlist.name()).clicked() {
+                            //                 to_send.extend_from_slice(&[
+                            //                     shared::message::ClientMessage::Command(shared::command::PlaylistCommand::RemoveFromPlaylist { playlist_uuid: *playlist.uuid(), song_index: playlist.songs().iter().position(|s| s.uuid() == song.uuid()).unwrap() as u16 }.into()),
+                            //                     shared::message::ClientMessage::Command(shared::command::PlaylistCommand::GetAll.into())
+                            //                 ]);
+                            //             }
+                            //         }
+                            //     });
                             // if resp.unwrap().response.should_close() {
                             //     debug!("Off");
                             //     unsafe { TAG = false }
                             // }
                             // }
                         });
+
+                        if !(unsafe { ALL_SONGS } || client.playlist_data().current.is_none())
+                            && ui.button("x").clicked(){
+                            let playlist =client.playlist_data().get_current().unwrap();
+                            to_send.extend_from_slice(&[
+                                shared::message::ClientMessage::Command(
+                                    shared::command::PlaylistCommand::RemoveFromPlaylist {
+                                        playlist_uuid: *playlist.uuid(),
+                                        song_index: playlist.songs()
+                                            .iter()
+                                            .position(|s| s.uuid() == song.uuid())
+                                            .unwrap() as u16
+                                    }.into()),
+                                    shared::message::ClientMessage::Command(
+                                        shared::command::PlaylistCommand::GetAll.into()
+                                    )
+                            ]);
+                        }
                         // ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         if ui.button(song.metadata().title()).clicked() {
                             request_play(song, &mut to_send)
